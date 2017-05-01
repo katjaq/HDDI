@@ -547,18 +547,19 @@ $(document).ready(function() {
 	//document.getElementById('buttonDownload').addEventListener('click', downloadFile, false);
 	document.getElementById('buttonSave').addEventListener('click', saveFile, false);
 	document.getElementById('buttonInvert').addEventListener('click', invert, false);
-	$('#slider1').change(function() {
+
+	$('#slider1').on("input change", function() {
 		sliderCor($(this).val());
     	//console.log($(this).next().html($(this).val()));
-	});
+	}); 
 	
-	$('#slider2').change(function() {
+	$('#slider2').on("input change", function() {
 		sliderCor2($(this).val());
 		//sliderSag($(this).val());
     	//console.log($(this).next().html($(this).val()));
 	});
 	
-	$('#slider3').change(function() {
+	$('#slider3').on("input change", function() {
 		sliderCor3($(this).val());
 		//sliderAxi($(this).val());
     	//console.log($(this).next().html($(this).val()));

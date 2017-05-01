@@ -152,6 +152,22 @@ function sliderCor2( value ) {
 	ctx.putImageData( imageData, 0,0 );
 }
 
+function sliderCor3( value ) {
+	console.log( '%csliderCor3', 'color: green;' );
+	var canvas = document.getElementById( 'c3' );
+	var dims = nifti3.getDims();
+	canvas.width = dims.nx;
+	canvas.height = dims.nz;
+	var ctx = canvas.getContext( '2d' );
+	var imageData = ctx.getImageData( 0, 0, dims.nx, dims.nz );
+	var slice = nifti3.getImage( 'coronal', value );
+	
+	for( var i = 0; i < imageData.data.length; ++i ) {
+		imageData.data[i] = slice.data[i];
+	}
+	ctx.putImageData( imageData, 0,0 );
+}
+
 /* save nifti 4 to save color values */
 /*
 function saveFile() {
@@ -224,6 +240,7 @@ function identifyVoxels() {
 	}
 	//if( debug > 2 ) { console.log( '%cborder voxels (index,x,y,z): '+ JSON.stringify(bvox), 'color: green;' ); }
 	if( debug > 2 ) { console.log( '%cborder voxels (index x,y,z): ', 'color: orange;' ); console.log( bvox ); }
+	if( debug > 2 ) { console.log( 'nifti2: ', nifti2 ); }
 }
 
 
@@ -236,7 +253,7 @@ function genVectors() {
 	
 	//nifti3 to store 1 for every visited voxel
 	nifti3 = new Nifti();
-	nifti3.makeNew( dims.nx, dims.ny, dims.nz, dims.dx, dims.dy, dims.dz, 3, 'FLOAT32' );
+	nifti3.makeNew( dims.nx, dims.ny, dims.nz, dims.dx, dims.dy, dims.dz, 1, 'UINT8' );
 	
 	//nifti4 to store direction vector for every voxel
 	nifti4 = new Nifti();
@@ -290,8 +307,8 @@ var count = 0;
 	
 			
 			//set every visited voxel to 1
-			nifti3.setValue( voxel.x, voxel.y, voxel.z, [ 1, 1, 1 ] );
-			
+			//nifti3.setValue( voxel.x, voxel.y, voxel.z, [ 1, 1, 1 ] );
+			nifti3.setValue( voxel.x, voxel.y, voxel.z, 1 );
 			
 			//write direction into border voxel
 			nifti4.setValue( voxel.x, voxel.y, voxel.z, [ v.x, v.y, v.z ] );
@@ -354,7 +371,22 @@ var count = 0;
 		if( debug > 2 ) { console.log( '%cvoxel visit count ', 'color: orange;' ); console.log( vvC );
 		*/
 	}
-
+	if( debug > 2 ) { console.log( '%cgenerate voxels finito', 'color: light-green;' ); }
+	
+	for( var x = 1; x < (dims.nx - 1); ++x ) {
+		for( var y = 1; y < (dims.ny -1); ++y ) {
+			for( var z = 1; z < (dims.nz - 1); ++z) {
+				var val = nifti3.getValue( x , y, z );
+				if( val != 1 ) {
+					nifti3.setValue( x, y, z, 0 );
+				}
+				else {
+					nifti3.setValue( x, y, z, 200 );
+				}
+			}
+		}
+	}
+	if( debug > 2 ) { console.log( 'nifti3 after loop: ', nifti3 ); }
 }
 	
 	
@@ -527,7 +559,8 @@ $(document).ready(function() {
 	});
 	
 	$('#slider3').change(function() {
-		sliderAxi($(this).val());
+		sliderCor3($(this).val());
+		//sliderAxi($(this).val());
     	//console.log($(this).next().html($(this).val()));
 	});
 });

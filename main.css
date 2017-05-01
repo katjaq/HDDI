@@ -57,7 +57,7 @@ h1 {
 }
 
 #canvasWrapper {
-	height: 250px;
+	height: 280px;
 }
 
 #c1{
@@ -76,6 +76,9 @@ h1 {
 
 #c3{
 	zoom: 300%;
+	margin-top: 1em;
+	position: absolute;
+	right: 5%;
 }
 
 #c4{
@@ -87,7 +90,7 @@ h1 {
 
 
 
-#slider1, #slider2 {
+#slider1, #slider2, #slider3 {
 	-webkit-appearance: none;
 	border-width: 0.1px !important;
 	border: 0px solid;
@@ -104,6 +107,10 @@ h1 {
 	position: absolute;
 	left: 50%; 
 	transform: translate(-50%, 0)
+}
+#slider3 {
+	position: absolute;
+	right: 5%; 
 }
 
 /*

@@ -101,6 +101,25 @@ function maskLoadCallback() {
 	ctx.putImageData( imageData, 0,0 );
 }
 
+function invert() {
+	var dims = nifti1.getDims();
+
+	for( var z = 0; z < dims.nz; ++z ) {
+		for( var y = 0; y < dims.ny; ++y ) {
+			for( var x = 0; x < dims.nx; ++x ) {
+				var val = nifti1.getValue( x, y, z ); //if mask --> val is 0 or 1
+				if( val > 0 ) {
+					nifti1.setValue( x, y, z, 255 - val );	
+				}
+				else {
+					nifti1.setValue( x, y, z, [0,0,0] );
+				}
+				//nifti1.setValue( x, y, z, [val/255.0,0,0] );	
+			}
+		}
+	}
+}
+
 function sliderCor( value ) {
 	console.log( '$%cliderCor', 'color: green;' );
 	var canvas = document.getElementById( 'c1' );
@@ -495,7 +514,7 @@ $(document).ready(function() {
 	document.getElementById('btVectors').addEventListener('click', genVectors, false);
 	//document.getElementById('buttonDownload').addEventListener('click', downloadFile, false);
 	document.getElementById('buttonSave').addEventListener('click', saveFile, false);
-	//document.getElementById('buttonInvert').addEventListener('click', invert, false);
+	document.getElementById('buttonInvert').addEventListener('click', invert, false);
 	$('#slider1').change(function() {
 		sliderCor($(this).val());
     	//console.log($(this).next().html($(this).val()));

@@ -446,8 +446,8 @@
                 imageData.data[id+2] = col*255;
                 imageData.data[id+3] = 255;
 			}
-		}
-		
+		}	
+				
 		this.getRawData = function() {
 			return rawData;
 		}

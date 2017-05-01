@@ -1,9 +1,58 @@
+:root{
+	--main-bg-color: #222222;							/* background-color of web page: light grey */
+	--main-padding: 2.5em 2.5em 2em 2.5em;				/* global padding */
+	--main-font-family: 'Droid Sans', sans-serif;		/* font family: sans serif */
+	--h1-font-family: 'Cinzel Decorative', serif;		/* font family: serif */
+	--text-font-size: 16px;								/* font size of main text */
+	--h1-font-size: 24px;								/* font size of title in main text */
+	--font-weight: 200;									/* font-weight of main text */
+	--main-font-color: #FFFFFF;							/* font color of texts: black */
+}
+
+
+body {
+	background: var( --main-bg-color );
+	font-family: var( --main-font-family );
+	font-weight: var( --font-weight );
+	color: var( --main-font-color );
+	margin:0px;
+}
+h1 {
+	font-family: var( --h1-font-family );
+	font-weight: var( --font-weight );
+	font-size: var( --h1-font-size );
+	line-height: 1.5;
+	text-rendering: optimizeLegibility;
+	position:absolute;
+	top:1em;
+	left:5%;
+	z-index:10;
+}
+#introText {
+	font-family: var( --main-font-family );
+	font-weight: var( --font-weight );
+	font-size: var( --text-font-size );
+	line-height: 1.5;
+	text-rendering: optimizeLegibility;
+	width:30%;
+	position:absolute;
+	top:6em;
+	left:5%;
+	z-index:10;
+}
+#div1 {
+	margin-left:5%;
+	margin-top: 2em;
+}
+
 #c1{
-	zoom: 300%
+	zoom: 300%;
+	margin: 1em;
 }
 
 #c2{
-	zoom: 300%
+	zoom: 300%;
+	margin: 1em;
 }
 
 #c3{
@@ -14,9 +63,9 @@
 	zoom: 300%;
 }
 
-body {
-	background: #333;
-}
+
+
+
 
 /*
 #slider1 #slider2 #slider3 #slider4 {

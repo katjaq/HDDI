@@ -4,6 +4,7 @@
 	--main-font-family: 'Droid Sans', sans-serif;		/* font family: sans serif */
 	--h1-font-family: 'Cinzel Decorative', serif;		/* font family: serif */
 	--text-font-size: 16px;								/* font size of main text */
+	--button-font-size: 12px;							/* font size of button and info text */
 	--h1-font-size: 24px;								/* font size of title in main text */
 	--font-weight: 200;									/* font-weight of main text */
 	--main-font-color: #FFFFFF;							/* font color of texts: black */
@@ -14,6 +15,7 @@ body {
 	background: var( --main-bg-color );
 	font-family: var( --main-font-family );
 	font-weight: var( --font-weight );
+	font-size: var( --button-font-size );
 	color: var( --main-font-color );
 	margin:0px;
 }
@@ -44,15 +46,32 @@ h1 {
 	margin-left:5%;
 	margin-top: 2em;
 }
+#btSurfaceVoxels {
+	position: absolute;
+	left: 50%; 
+	transform: translate(-50%, 0)
+}
+#btVectors {
+	position: absolute;
+	right: 5%;
+}
+
+#canvasWrapper {
+	height: 250px;
+}
 
 #c1{
 	zoom: 300%;
-	margin: 1em;
+	margin-left: 0em;
+	margin-top: 1em;
 }
 
 #c2{
 	zoom: 300%;
-	margin: 1em;
+	margin-top: 1em;
+	position: absolute;
+	left: 50%; 
+	transform: translate(-50%, 0)
 }
 
 #c3{
@@ -67,22 +86,27 @@ h1 {
 
 
 
-/*
-#slider1 #slider2 #slider3 #slider4 {
-	border-width: 1px;
-	border-style: solid;
-	border-color: #333 #333 #777 #333;
+
+#slider1, #slider2 {
+	-webkit-appearance: none;
+	border-width: 0.1px !important;
+	border: 0px solid;
 	border-radius: 25px;
-	width: 100px;
+	width: 300px;
+	height: 1px !important;
+	outline: none;
 	position: absolute;
-	height: 10px;
-	background-color: #8e8d8d;
-	background: url('images/bg-track.png') repeat top left;
-	box-shadow: inset 0 1px 5px 0px rgba(0, 0, 0, .5), 
-		   0 1px 0 0px rgba(250, 250, 250, .5);
-	left: 20px;
+	margin-top: 15px;
+	margin-bottom: 70px;
+	background-color: #EEEEEE;
+}
+#slider2 {
+	position: absolute;
+	left: 50%; 
+	transform: translate(-50%, 0)
 }
 
+/*
 .tooltip {
 	position: absolute;
 	display: block;

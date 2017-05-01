@@ -34,21 +34,26 @@
 			</div>
     	</div>
     	<div id='div1'>
-	    	<input type='file' id='fiMask' />
-	    	<input type='button' id='btSurfaceVoxels' value='surface voxels' />
+	    	<input type='file' id='fiMask' value='Upload File' />
+	    	<input type='button' id='btSurfaceVoxels' value='get surface voxels' />
 	    	<!--<input type='button' id='btBvecs' value='get bvecs in' />-->
 	    	<input type='button' id='btVectors' value='generate vectors' />
 	 
-	    	<br>
-			<canvas id='c1' style='width:100px'></canvas>
-			<canvas id='c2' style='width:100px'></canvas>
-			<canvas id='c3' style='width:100px'></canvas>
+	    	<div id='canvasWrapper'>
+				<canvas id='c1' style='width:100px'></canvas>
+				<canvas id='c2' style='width:100px'></canvas>
+				<canvas id='c3' style='width:100px'></canvas>
+			</div>
+			<br>
+			<br>
 			<br>
 			<br>
 			<input type='range' id='slider1' min='1' step='1' value='60'>
 			<div id='sliderAmount'></div>
 			<input type='range' id='slider2' min='1' step='1' value='60'>
 			<div id='sliderAmount'></div>
+			<br>
+			<br>
 			<br>
 			<input type='button' id='buttonInvert' value='Invert' />
 			<br>

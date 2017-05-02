@@ -565,11 +565,14 @@ $(document).ready(function() {
 		if( nifti3 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());
+			document.getElementById('slider2').value = $(this).val();
 			sliderCor3($(this).val());
+			document.getElementById('slider3').value = $(this).val();
 		}
 		else if( nifti2 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());
+			document.getElementById('slider2').value = $(this).val();
 		}
 		else if( nifti1 ) {
 			sliderCor($(this).val());
@@ -588,11 +591,14 @@ $(document).ready(function() {
 		}
 		if( nifti3 ) {
 			sliderCor($(this).val());
+			document.getElementById('slider1').value = $(this).val();
 			sliderCor2($(this).val());
+			document.getElementById('slider2').value = $(this).val();
 			sliderCor3($(this).val());
 		}
 		else if( nifti2 ) {
 			sliderCor($(this).val());
+			document.getElementById('slider1').value = $(this).val();
 			sliderCor2($(this).val());
 		}
 		//sliderSag($(this).val());
@@ -609,7 +615,9 @@ $(document).ready(function() {
 		}
 		if( nifti3 ) {
 			sliderCor($(this).val());
+			document.getElementById('slider1').value = $(this).val();
 			sliderCor2($(this).val());
+			document.getElementById('slider2').value = $(this).val();
 			sliderCor3($(this).val());
 		}
 		//sliderAxi($(this).val());

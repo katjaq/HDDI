@@ -549,18 +549,42 @@ $(document).ready(function() {
 	document.getElementById('buttonInvert').addEventListener('click', invert, false);
 
 	$('#slider1').on("input change", function() {
-		sliderCor($(this).val());
+		if( nifti3 ) {
+			sliderCor($(this).val());
+			sliderCor2($(this).val());
+			sliderCor3($(this).val());
+		}
+		else if( nifti2 ) {
+			sliderCor($(this).val());
+			sliderCor2($(this).val());
+		}
+		else if( nifti1 ) {
+			sliderCor($(this).val());
+		}
     	//console.log($(this).next().html($(this).val()));
 	}); 
 	
 	$('#slider2').on("input change", function() {
-		sliderCor2($(this).val());
+		if( nifti3 ) {
+			sliderCor($(this).val());
+			sliderCor2($(this).val());
+			sliderCor3($(this).val());
+		}
+		else if( nifti2 ) {
+			sliderCor($(this).val());
+			sliderCor2($(this).val());
+			$( "slider1" ).slider({ slide: function( event, value ) { $("#slider1").slider( "val" , $(this).val())}});
+		}
 		//sliderSag($(this).val());
     	//console.log($(this).next().html($(this).val()));
 	});
 	
 	$('#slider3').on("input change", function() {
-		sliderCor3($(this).val());
+		if( nifti3 ) {
+			sliderCor($(this).val());
+			sliderCor2($(this).val());
+			sliderCor3($(this).val());
+		}
 		//sliderAxi($(this).val());
     	//console.log($(this).next().html($(this).val()));
 	});

@@ -120,6 +120,8 @@ function invert() {
 	}
 }
 
+
+
 function sliderCor( value ) {
 	console.log( '$%cliderCor', 'color: green;' );
 	var canvas = document.getElementById( 'c1' );
@@ -548,7 +550,18 @@ $(document).ready(function() {
 	document.getElementById('buttonSave').addEventListener('click', saveFile, false);
 	document.getElementById('buttonInvert').addEventListener('click', invert, false);
 
+
+        
 	$('#slider1').on("input change", function() {
+		if( nifti1 || nifti2 || nifti3 ) {
+			var dims = nifti1.getDims();
+			var maxRange = Math.floor(( dims.nx - 1 ) * 2);
+			console.log( 'maxRange: ', maxRange );
+			var minRange = 1;
+			document.getElementById('slider1').max = maxRange;
+			document.getElementById('slider1').min = minRange;
+			//document.getElementById('slider1').step = 1;
+		}
 		if( nifti3 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());
@@ -565,6 +578,14 @@ $(document).ready(function() {
 	}); 
 	
 	$('#slider2').on("input change", function() {
+		if( nifti1 || nifti2 || nifti3 ) {
+			var dims = nifti1.getDims();
+			var maxRange = Math.floor(( dims.nx - 1 ) * 2);
+			console.log( 'maxRange: ', maxRange );
+			var minRange = 1;
+			document.getElementById('slider2').max = maxRange;
+			document.getElementById('slider2').min = minRange;
+		}
 		if( nifti3 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());
@@ -573,13 +594,19 @@ $(document).ready(function() {
 		else if( nifti2 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());
-			$( "slider1" ).slider({ slide: function( event, value ) { $("#slider1").slider( "val" , $(this).val())}});
 		}
 		//sliderSag($(this).val());
     	//console.log($(this).next().html($(this).val()));
 	});
 	
 	$('#slider3').on("input change", function() {
+		if( nifti1 || nifti2 || nifti3 ) {
+			var dims = nifti1.getDims();
+			var maxRange = ( dims.nx - 1 ) * 2;
+			var minRange = 1;
+			document.getElementById('slider3').max = maxRange;
+			document.getElementById('slider3').min = minRange;
+		}
 		if( nifti3 ) {
 			sliderCor($(this).val());
 			sliderCor2($(this).val());

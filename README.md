@@ -2,7 +2,10 @@
 
 A script to generate fibers based on the anatomy.
 
-<img width="700" alt="_hddi_workinprogress" src="https://user-images.githubusercontent.com/6297454/32915617-cb34729c-cb19-11e7-84d5-c94075e0d881.png">
+<img width="900" alt="_hddi_workinprogress" src="https://user-images.githubusercontent.com/6297454/32915617-cb34729c-cb19-11e7-84d5-c94075e0d881.png">
+
+
+![_hddi_100_8](https://user-images.githubusercontent.com/6297454/32948130-8361f338-cb9e-11e7-8a79-9de06174d740.gif)
 
 <img width="699" alt="_hddi_ 2017-05-01 at 16 02 57" src="https://user-images.githubusercontent.com/6297454/32915631-d4e9f352-cb19-11e7-92ef-f7f16d2c4967.png">
 

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>colortest</title>
+    </head>
+
+    <body>
+        <div id='intro'>
+
+            <div id='canvasWrapper'>
+                <canvas id='c1' style='width:100px'></canvas>
+                <canvas id='c2' style='width:100px'></canvas>
+                <canvas id='c3' style='width:100px'></canvas>
+            </div>
+            <br>
+            <br>
+            <br>
+            <br>
+            <input type='range' id='slider1' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <input type='range' id='slider2' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <input type='range' id='slider3' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <br>
+            <br>
+            <br>
+            <input type='button' id='buttonInvert' value='Invert' />
+            <br>
+            <br>
+            <br>
+            <div class='form-group'>
+                <label for='input-fileName'>File name</label>
+                <input type='text' class='form-control' id='input-fileName' value='nifti.nii' placeholder='Enter file name'>
+                <input type='button' id='buttonSave' value='Save File' />
+              </div>
+        </div>
+        <!--
+        <div id='div2'>
+        <br>
+            <input type='file' id='file-input' />
+            <br>
+            <canvas id='c4'></canvas>
+        </div>
+        -->
+    </body>
+</html>    

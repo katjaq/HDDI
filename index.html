@@ -8,72 +8,72 @@
         <link rel='shortcut icon' type='image/x-icon' href='favicon.ico' />
         <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
         <script src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js'></script>
-        <script src='FileSaver.js'></script>	
-		<script src='nifti.js'></script>
-		<script src='sim.js'></script>
+        <script src='FileSaver.js'></script>
+        <script src='nifti.js'></script>
+        <script src='sim.js'></script>
     </head>
 
     <body>
-    	<div id='intro'>
-    		<video width='100%' controls loop Autoplay=autoplay>
-  				<source src='img/fluid.mov' type="video/mp4">
-			</video>
-			<h1>Hypothesis-driven Diffusion Imaging</h1>
-			<div id='introText'>
-				<p>This simulation tries to see how much of a real DWI-based tractography we are able to recover by applying anatomical constraints to randomly drifting particles within the mask.
-				<br>
-				These constraints could be implemented based on the hypotheses that 
-					<li>fibres run perpendicular to gyral crowns,
-					<li>follow sulcal fundi,
-					<li>have a homogeneous density throughout the white matter
-					<li>and are sticky, forming bundles of similar orientation.
-				<br>
-				<br>
-				Work in progress :)
-				</p>
-			</div>
-    	</div>
-    	<div id='div1'>
-	    	<input type='file' id='fiMask' value='Upload File' />
-	    	<input type='button' id='btSurfaceVoxels' value='get surface voxels' />
-	    	<!--<input type='button' id='btBvecs' value='get bvecs in' />-->
-	    	<input type='button' id='btVectors' value='generate vectors' />
-	 
-	    	<div id='canvasWrapper'>
-				<canvas id='c1' style='width:100px'></canvas>
-				<canvas id='c2' style='width:100px'></canvas>
-				<canvas id='c3' style='width:100px'></canvas>
-			</div>
-			<br>
-			<br>
-			<br>
-			<br>
-			<input type='range' id='slider1' min='1' step='1' value='60'>
-			<div id='sliderAmount'></div>
-			<input type='range' id='slider2' min='1' step='1' value='60'>
-			<div id='sliderAmount'></div>
-			<input type='range' id='slider3' min='1' step='1' value='60'>
-			<div id='sliderAmount'></div>
-			<br>
-			<br>
-			<br>
-			<input type='button' id='buttonInvert' value='Invert' />
-			<br>
-			<br>
-			<br>
-			<div class='form-group'>
-			    <label for='input-fileName'>File name</label>
-			    <input type='text' class='form-control' id='input-fileName' value='nifti.nii' placeholder='Enter file name'>
-			    <input type='button' id='buttonSave' value='Save File' />
-  			</div>
-		</div>
-		<!--
-		<div id='div2'>
-		<br>
-			<input type='file' id='file-input' />
-			<br>
-			<canvas id='c4'></canvas>
-		</div>
-		-->
-	</body>
-</html>	
+        <div id='intro'>
+            <video width='100%' controls loop Autoplay=autoplay>
+                <source src='img/fluid.mov' type="video/mp4">
+            </video>
+            <h1>Hypothesis-driven Diffusion Imaging</h1>
+            <div id='introText'>
+                <p>This simulation tries to see how much of a real DWI-based tractography we are able to recover by applying anatomical constraints to randomly drifting particles within the mask.
+                <br>
+                These constraints could be implemented based on the hypotheses that 
+                    <li>fibres run perpendicular to gyral crowns,
+                    <li>follow sulcal fundi,
+                    <li>have a homogeneous density throughout the white matter
+                    <li>and are sticky, forming bundles of similar orientation.
+                <br>
+                <br>
+                Work in progress :)
+                </p>
+            </div>
+        </div>
+        <div id='div1'>
+            <input type='file' id='fiMask' value='Upload File' />
+            <input type='button' id='btSurfaceVoxels' value='get surface voxels' />
+            <!--<input type='button' id='btBvecs' value='get bvecs in' />-->
+            <input type='button' id='btVectors' value='generate vectors' />
+
+            <div id='canvasWrapper'>
+                <canvas id='c1' style='width:100px'></canvas>
+                <canvas id='c2' style='width:100px'></canvas>
+                <canvas id='c3' style='width:100px'></canvas>
+            </div>
+            <br>
+            <br>
+            <br>
+            <br>
+            <input type='range' id='slider1' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <input type='range' id='slider2' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <input type='range' id='slider3' min='1' step='1' value='60'>
+            <div id='sliderAmount'></div>
+            <br>
+            <br>
+            <br>
+            <input type='button' id='buttonInvert' value='Invert' />
+            <br>
+            <br>
+            <br>
+            <div class='form-group'>
+                <label for='input-fileName'>File name</label>
+                <input type='text' class='form-control' id='input-fileName' value='nifti.nii' placeholder='Enter file name'>
+                <input type='button' id='buttonSave' value='Save File' />
+              </div>
+        </div>
+        <!--
+        <div id='div2'>
+        <br>
+            <input type='file' id='file-input' />
+            <br>
+            <canvas id='c4'></canvas>
+        </div>
+        -->
+    </body>
+</html>    

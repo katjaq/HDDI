@@ -1,0 +1,24 @@
+{
+  "name": "hddi",
+  "version": "1.0.0",
+  "description": "hypothesis driven diffusion imaging",
+  "main": "hddi.js",
+  "scripts": {
+    "test": "node hddi.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/katjaq/HDDI.git"
+  },
+  "author": "Roberto Toro <rto@braincatalogue.org> (http://neuroanatomy.github.io)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/katjaq/HDDI/issues"
+  },
+  "homepage": "https://github.com/katjaq/HDDI#readme",
+  "dependencies": {
+    "cli-progress": "^1.6.0",
+    "mathjs": "^3.17.0",
+    "struct": "0.0.12"
+  }
+}

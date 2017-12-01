@@ -1,0 +1,48 @@
+/*
+Hypothesis-driven Diffusion Imaging.
+A script to generate fibers based on the anatomy.
+
+This simulation tries to see how much of a real DWI-based tractography we are able to recover by applying anatomical constraints to randomly drifting particles within the mask.
+These constraints could be implemented based on the hypotheses that
+    fibres run perpendicular to gyral crowns,
+    follow sulcal fundi,
+    have a homogeneous density throughout the white matter
+    and are sticky, forming bundles of similar orientation.
+
+Randomly, a surface voxel will be chosen and start propagating a particle into a random direction until it hits a surface. This process is repeated a huge number of times.
+Work in progress: Direction values will be stored throughout all iterations, while counting voxel visits and repelling fibers based on density...
+
+2016, katja & roberto
+*/
+
+const progress = require('cli-progress');
+const sys = require('util')
+const fsl = require('./fsl');
+const mrtrix = require('./mrtrix');
+
+var HDDI = (function HDDI() {
+    "use strict";
+    var me = {
+        debug: 0,
+        nifti1: null, // mask or T1 in format .nii
+        nifti2: null, // identify surface voxels (set to bv) and inside volume (set 1 if > 0) and outside (0),
+        nifti3: null, // contains value 1 for every visited voxel
+        nifti4: null, // stores direction values from one visit
+        bv: 2,        // border value
+        bvox: [],     // border voxels
+        vol: [],      // new volum array (storing direction value sum of all passed fibers)
+        vvC: []       // voxelVisitCount: array (blocksize) containing integer: how many times has voxel been passed by a fiber
+    };
+
+    return me;
+}())
+
+// me.extend(me, HDDIGUI);
+// me.extend(me, HDDINIFTI);
+HDDI = extend(HDDI, HDDISim);
+
+
+/*
+    To generate gradient tables:
+    http://www.emmanuelcaruyer.com/WebApp/q-space-sampling.php?nbPoints=6&nbShells=1&alpha=1
+*/

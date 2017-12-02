@@ -19,7 +19,7 @@
     };
     HDDI.params = params;
 
-    const wdir = 'experiments/02-rectangle/';
+    const wdir = 'experiments/02-rectangle/results/';
     const exec = require('child_process').execSync;
 
     // generate rectangle

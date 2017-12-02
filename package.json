@@ -20,5 +20,10 @@
     "cli-progress": "^1.6.0",
     "mathjs": "^3.17.0",
     "struct": "0.0.12"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-print": "^2.0.1"
   }
 }

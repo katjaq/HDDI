@@ -7,7 +7,7 @@
         w: 0.9, // stiffness parameter
         step: 0.5, // step size
         minFibLength: 10,
-        ns: 1e+6, // number of streamlines to throw
+        ns: 1e+5, // number of streamlines to throw
         dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
             {x: 0.817324, y: -0.49673, z: -0.29196},
             {x: 0.465087, y: -0.03533, z: 0.88456},
@@ -22,12 +22,11 @@
     const wdir = 'experiments/02-rectangle/';
     const exec = require('child_process').execSync;
 
-/*
     // generate rectangle
     let vol = [];
-    const dim = [200, 200, 50];
+    const dim = [100, 100, 50];
     let i, j, k;
-    let r = 60;
+    let r = 40;
     for(i=0;i<dim[0];i++) {
         for(j=0;j<dim[1];j++) {
             for(k=0;k<dim[2];k++) {
@@ -52,7 +51,6 @@
 
     // create a b0 image as max(dir)
     const b0 = HDDI.computeB0(res.dir, dim);
-*/
 
 /*
     // compute and save first diffusion directions
@@ -72,7 +70,6 @@
     });
 */
 
-/*
     // save results
     const dir = [];
     const dirs = [];
@@ -109,5 +106,4 @@
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
         mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
     });
-*/
 } ());

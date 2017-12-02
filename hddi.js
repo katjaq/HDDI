@@ -36,6 +36,7 @@ function extend() {
 
     return extended;
 }
+
 const fs = require('fs');
 const Struct = require('Struct');
 const zlib = require('zlib');
@@ -97,15 +98,7 @@ function createNiftiHeader(dim, pixdim, dir) {
         session_error: 0,
         regular: 0,
         dim_info: 0,
-        dim: [ 3,
-               dim[0],
-               dim[1],
-               dim[2],
-               1,
-               1,
-               1,
-               1
-        ],
+        dim: [ 3, dim[0], dim[1], dim[2], 1, 1, 1, 1 ],
         intent_p1: 0,
         intent_p2: 0,
         intent_p3: 0,
@@ -113,15 +106,7 @@ function createNiftiHeader(dim, pixdim, dir) {
         datatype: datatype,
         bitpix: 32,
         slice_start: 0,
-        pixdim: [ -1,
-                  pixdim[0],
-                  pixdim[1],
-                  pixdim[2],
-                  0,
-                  1,
-                  1,
-                  1
-        ],
+        pixdim: [ -1, pixdim[0], pixdim[1], pixdim[2], 0, 1, 1, 1 ],
         vox_offset: 352,
         scl_slope: 1,
         scl_inter: 0,
@@ -189,6 +174,7 @@ function saveNiftiData(vol, dim, path) {
 
     return pr;
 }
+
 /*
 http://www.diffusion-imaging.com/2014/04/from-diffusion-weighted-images-to.html
 */
@@ -318,6 +304,7 @@ function fa(evals) {
         + Math.pow(l3 - MD, 2))
         /(2*(l1*l1 + l2*l2 + l3*l3)));
 }
+
 let HDDISim = (function HDDISim() {
 "use strict";
     var me = {
@@ -652,6 +639,7 @@ let HDDISim = (function HDDISim() {
 
     return me;
 }());
+
 /*
 Hypothesis-driven Diffusion Imaging.
 A script to generate fibers based on the anatomy.
@@ -671,8 +659,8 @@ Work in progress: Direction values will be stored throughout all iterations, whi
 
 const progress = require('cli-progress');
 const sys = require('util')
-const fsl = require('./fsl');
-const mrtrix = require('./mrtrix');
+const fsl = require('./interfaces/fsl');
+const mrtrix = require('./interfaces/mrtrix');
 
 var HDDI = (function HDDI() {
     "use strict";
@@ -699,7 +687,8 @@ HDDI = extend(HDDI, HDDISim);
 /*
     To generate gradient tables:
     http://www.emmanuelcaruyer.com/WebApp/q-space-sampling.php?nbPoints=6&nbShells=1&alpha=1
-*/(function () {
+*/
+(function () {
     "use strict";
 
     console.log("Ellipsoid test");
@@ -725,9 +714,9 @@ HDDI = extend(HDDI, HDDISim);
 
     // generate ellipsoid
     let vol = [];
-    const dim = [200, 200, 50];
+    const dim = [100, 100, 50];
     let i, j, k;
-    let r = 60;
+    let r = 40;
     for(i=0;i<dim[0];i++) {
         for(j=0;j<dim[1];j++) {
             for(k=0;k<dim[2];k++) {
@@ -739,7 +728,6 @@ HDDI = extend(HDDI, HDDISim);
             }
         }
     }
-    // saveNiftiData(vol,dim,'vol.nii');
 
     // identify surface
     const ident = HDDI.identifyVoxels(vol, dim);
@@ -780,7 +768,115 @@ HDDI = extend(HDDI, HDDISim);
     for(i=0; i<HDDI.params.dir.length; i++) {
         arr.push(saveNiftiData(res.dir[i],dim,dir[i]));
     }
-    console.log(arr);
+    Promise
+    .all(arr)
+    .then(() => {
+        // gaussian smooth
+        for(i=0; i<HDDI.params.dir.length; i++) {
+            fsl.maths( [dir[i], '-kernel gauss 3 -fmean', dirs[i]] );
+        }
+        // merge
+        fsl.merge(['-t', wdir + 'dwi.nii.gz', wdir + 'b0.nii.gz', ...dir]);
+        // remove intermediate files
+        exec(['rm', ...dir, ...dirs, wdir + 'b0.nii.gz'].join(' '));
+
+        // do tractography
+        // save bvals & bvecs
+        fs.writeFileSync(wdir + 'bvals.txt', [0, ...[...Array(HDDI.params.dir.length)].map(o=>1000)].join(' '));
+        fs.writeFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.x), '\n'].join(' '));
+        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.y), '\n'].join(' '));
+        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.z), '\n'].join(' '));
+
+        mrtrix.mrconvert([wdir + 'dwi.nii.gz','-fslgrad', wdir + 'bvecs.txt', wdir + 'bvals.txt', wdir + 'dwi.mif', '-force']);
+        mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
+        mrtrix.tensor2metric(['-fa', wdir + 'fa.nii.gz', '-adc', wdir + 'adc.nii.gz', '-num', 1 ,'-vector', wdir + 'v1.nii.gz', wdir + 'dt.mif ', '-force']);
+        mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
+        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
+    });
+} ());
+(function () {
+    "use strict";
+
+    console.log("Rectangle test");
+
+    const params = {
+        w: 0.9, // stiffness parameter
+        step: 0.5, // step size
+        minFibLength: 10,
+        ns: 1e+5, // number of streamlines to throw
+        dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
+            {x: 0.817324, y: -0.49673, z: -0.29196},
+            {x: 0.465087, y: -0.03533, z: 0.88456},
+            {x: 0.820439, y: -0.31517, z: 0.477018},
+            {x: -0.80334, y: 0.593293, z: -0.05141},
+            {x: -0.15636, y: 0.788990, z: -0.59418},
+            {x: -0.11253, y: -0.34483, z: -0.93189}
+        ]
+    };
+    HDDI.params = params;
+
+    const wdir = 'experiments/02-rectangle/';
+    const exec = require('child_process').execSync;
+
+    // generate rectangle
+    let vol = [];
+    const dim = [100, 100, 50];
+    let i, j, k;
+    let r = 40;
+    for(i=0;i<dim[0];i++) {
+        for(j=0;j<dim[1];j++) {
+            for(k=0;k<dim[2];k++) {
+                if( Math.abs(i-dim[0]/2) < r
+                    && Math.abs(j-dim[1]/2) < r
+                    && Math.abs(k-dim[2]/2) < 15
+                ) {
+                    HDDI.setValue(vol, dim, i, j, k, 1);
+                } else {
+                    HDDI.setValue(vol, dim, i, j, k, 0);
+                }
+            }
+        }
+    }
+
+    // identify surface
+    const ident = HDDI.identifyVoxels(vol, dim);
+    saveNiftiData(ident, dim, wdir + 'mask.nii.gz');
+    
+    // generate streamlines
+    const res = HDDI.genStreamlines(ident, dim);
+
+    // create a b0 image as max(dir)
+    const b0 = HDDI.computeB0(res.dir, dim);
+
+/*
+    // compute and save first diffusion directions
+    const frst = HDDI.firstDirection(res.dir, dim);
+    Promise.all([
+        saveNiftiData(frst[0],dim, wdir + 'red.nii.gz'),
+        saveNiftiData(frst[1],dim, wdir + 'green.nii.gz'),
+        saveNiftiData(frst[2],dim, wdir + 'blue.nii.gz'),
+    ]).then(() => {
+        fsl.merge([
+            wdir + 'rgb.nii.gz',
+            wdir + 'red.nii.gz',
+            wdir + 'green.nii.gz',
+            wdir + 'blue.nii.gz'
+        ]);
+        exec(['rm', wdir + 'red.nii.gz', wdir + 'green.nii.gz', wdir + 'blue.nii.gz'].join(' '));
+    });
+*/
+
+    // save results
+    const dir = [];
+    const dirs = [];
+    for(i=0; i<HDDI.params.dir.length; i++) {
+        dir.push(wdir + 'dir{num}.nii.gz'.replace('{num}', i));
+        dirs.push(wdir + 'dir{num}s.nii.gz'.replace('{num}', i));
+    }
+    let arr = [saveNiftiData(b0,dim, wdir + 'b0.nii.gz')];
+    for(i=0; i<HDDI.params.dir.length; i++) {
+        arr.push(saveNiftiData(res.dir[i],dim,dir[i]));
+    }
     Promise
     .all(arr)
     .then(() => {

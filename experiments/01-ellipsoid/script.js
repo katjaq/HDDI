@@ -24,9 +24,9 @@
 
     // generate ellipsoid
     let vol = [];
-    const dim = [200, 200, 50];
+    const dim = [100, 100, 50];
     let i, j, k;
-    let r = 60;
+    let r = 40;
     for(i=0;i<dim[0];i++) {
         for(j=0;j<dim[1];j++) {
             for(k=0;k<dim[2];k++) {
@@ -38,7 +38,6 @@
             }
         }
     }
-    // saveNiftiData(vol,dim,'vol.nii');
 
     // identify surface
     const ident = HDDI.identifyVoxels(vol, dim);
@@ -79,7 +78,6 @@
     for(i=0; i<HDDI.params.dir.length; i++) {
         arr.push(saveNiftiData(res.dir[i],dim,dir[i]));
     }
-    console.log(arr);
     Promise
     .all(arr)
     .then(() => {

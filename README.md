@@ -29,6 +29,27 @@ Finally, run all the experiments by executing the `hddi.js` file using the comma
 
 The results will be generated in the `results` directory inside each experiment.
 
+## How does the code work
+
+`app.js` is the main code file, it calls all the MRI interfaces and the `sim.js` simulation code.
+Different experiments can be run on the model. Each experiment defines a geometry where the axons will be grown, and simulation parametres such as number of fibres, stiffness, etc.
+
+## How to write a new experiment
+Each experiment should be placed inside the `experiments` directory.
+Inside the experiment directory, a file `script.js` should contain the experiment code and a `results` directory should contain the results.
+This is, for example, the structure of the "ellipsoid" experiment `script.js` code:
+
+1. The `params` structure is defined, which contains all the parametres models, including fibre stiffness, minimum fibre length, number of fibres to generate, gradient table for the DWI simulation,
+2. The `wdir` variable is declared, which contains the path to the `results` directory,
+3. The geometry is generated, in this case, an ellipsoid,
+4. The surface, core and background of the model are identified with the `identifyVoxels` function,
+5. Streamlines are generated,
+6. A B0 volume is generated,
+7. The results are saved and merged so as to make them suitable for tractography analysis,
+8. The tractography reconstruction is launched.
+
+Finally, the compilation of all the different code files into the single, final code file is done using `Gulp`. The list of experiments to be run is contained in the array `experimentFiles`.
+
 ## File organisation
 
 <pre>

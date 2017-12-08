@@ -20,27 +20,56 @@ const sys = require('util')
 const fsl = require('./interfaces/fsl');
 const mrtrix = require('./interfaces/mrtrix');
 
-var HDDI = (function HDDI() {
-    "use strict";
-    var me = {
-        debug: 0,
-        nifti1: null, // mask or T1 in format .nii
-        nifti2: null, // identify surface voxels (set to bv) and inside volume (set 1 if > 0) and outside (0),
-        nifti3: null, // contains value 1 for every visited voxel
-        nifti4: null, // stores direction values from one visit
-        bv: 2,        // border value
-        bvox: [],     // border voxels
-        vol: [],      // new volum array (storing direction value sum of all passed fibers)
-        vvC: []       // voxelVisitCount: array (blocksize) containing integer: how many times has voxel been passed by a fiber
-    };
+var HDDIApp = {
+    debug: 0,
+    nifti1: null, // mask or T1 in format .nii
+    nifti2: null, // identify surface voxels (set to bv) and inside volume (set 1 if > 0) and outside (0),
+    nifti3: null, // contains value 1 for every visited voxel
+    nifti4: null, // stores direction values from one visit
+    bv: 2,        // border value
+    bvox: [],     // border voxels
+    vol: [],      // new volum array (storing direction value sum of all passed fibers)
+    vvC: [],      // voxelVisitCount: array (blocksize) containing integer: how many times has voxel been passed by a fiber
+    rho: null,    // fibre density volume
+    dir: null     // fibre direction volume
+}
 
-    return me;
-}())
+var HDDI = function HDDI() {};
+let ind, prop;
 
-// me.extend(me, HDDIGUI);
-// me.extend(me, HDDINIFTI);
-HDDI = extend(HDDI, HDDISim);
+console.log('\nExtending HDDI from HDDIApp');
+//keys=Object.keys(HDDIApp);for(p in keys){HDDIApp[keys[p]]);HDDI.prototype[keys[p]] = HDDIApp[keys[p]]}
+props=Object.keys(HDDIApp);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        console.log("["+prop+"]");
+        HDDI.prototype[prop] = HDDIApp[prop];
+    }
+}
 
+console.log('\nExtending HDDI from HDDISim');
+props=Object.keys(HDDISim);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        console.log("["+prop+"]");
+        HDDI.prototype[prop] = HDDISim[prop];
+    }
+}
+
+console.log('\nExtending HDDI from HDDISobel3');
+props=Object.keys(HDDISobel3);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        console.log("["+prop+"]");
+        HDDI.prototype[prop] = HDDISobel3[prop];
+    }
+}
+//HDDI.prototype = extend(HDDI.prototype, HDDISim.prototype);
+//HDDI.prototype = extend(HDDI.prototype, HDDISobel3.prototype);
+console.log(HDDI.prototype);
 
 /*
     To generate gradient tables:

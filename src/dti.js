@@ -4,7 +4,7 @@ http://www.diffusion-imaging.com/2014/04/from-diffusion-weighted-images-to.html
 
 const math = require('mathjs');
 
-function normalise(v) {
+function normVec(v) {
     let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
     return {
         x: v.x / lv,
@@ -70,7 +70,7 @@ function eigenvectors(l, d) {
         z: (Dxy*Dxz - A3*Dyz) * (Dxy*Dyz - B3*Dxz)
     }
 
-    return {e1: normalise(e1), e2: normalise(e2), e3: normalise(e3)};
+    return {e1: normVec(e1), e2: normVec(e2), e3: normVec(e3)};
 }
 
 function invHfromG(G) {

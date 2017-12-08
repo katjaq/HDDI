@@ -3,6 +3,9 @@
 
     console.log("Ellipsoid test");
 
+    let hddi = new HDDI();
+    console.log('hddi',hddi);
+
     const params = {
         w: 0.9, // stiffness parameter
         step: 0.5, // step size
@@ -17,7 +20,7 @@
             {x: -0.11253, y: -0.34483, z: -0.93189}
         ]
     };
-    HDDI.params = params;
+    hddi.params = params;
 
     const wdir = 'experiments/01-ellipsoid/results/';
     const exec = require('child_process').execSync;
@@ -31,27 +34,29 @@
         for(j=0;j<dim[1];j++) {
             for(k=0;k<dim[2];k++) {
                 if( Math.pow(i-dim[0]/2,2) + Math.pow(j-dim[1]/2,2) + 10*Math.pow(k-dim[2]/2,2) < r*r) {
-                    HDDI.setValue(vol, dim, i, j, k, 1);
+                    hddi.setValue(vol, dim, i, j, k, 1);
                 } else {
-                    HDDI.setValue(vol, dim, i, j, k, 0);
+                    hddi.setValue(vol, dim, i, j, k, 0);
                 }
             }
         }
     }
 
     // identify surface
-    const ident = HDDI.identifyVoxels(vol, dim);
+    const ident = hddi.identifyVoxels(vol, dim);
     saveNiftiData(ident, dim, wdir + 'mask.nii.gz');
     
     // generate streamlines
-    const res = HDDI.genStreamlines(ident, dim);
+    hddi.initialise(dim);
+    hddi.genStreamlines(ident, dim);
+    saveNiftiData(hddi.rho, dim, wdir + 'rho.nii.gz');
 
     // create a b0 image as max(dir)
-    const b0 = HDDI.computeB0(res.dir, dim);
+    const b0 = hddi.computeB0(dim);
 
 /*
     // compute and save first diffusion directions
-    const frst = HDDI.firstDirection(res.dir, dim);
+    const frst = hddi.firstDirection(hddi.dir, dim);
     Promise.all([
         saveNiftiData(frst[0],dim, wdir + 'red.nii.gz'),
         saveNiftiData(frst[1],dim, wdir + 'green.nii.gz'),
@@ -70,19 +75,19 @@
     // save results
     const dir = [];
     const dirs = [];
-    for(i=0; i<HDDI.params.dir.length; i++) {
+    for(i=0; i<hddi.params.dir.length; i++) {
         dir.push(wdir + 'dir{num}.nii.gz'.replace('{num}', i));
         dirs.push(wdir + 'dir{num}s.nii.gz'.replace('{num}', i));
     }
     let arr = [saveNiftiData(b0,dim, wdir + 'b0.nii.gz')];
-    for(i=0; i<HDDI.params.dir.length; i++) {
-        arr.push(saveNiftiData(res.dir[i],dim,dir[i]));
+    for(i=0; i<hddi.params.dir.length; i++) {
+        arr.push(saveNiftiData(hddi.dir[i],dim,dir[i]));
     }
     Promise
     .all(arr)
     .then(() => {
         // gaussian smooth
-        for(i=0; i<HDDI.params.dir.length; i++) {
+        for(i=0; i<hddi.params.dir.length; i++) {
             fsl.maths( [dir[i], '-kernel gauss 3 -fmean', dirs[i]] );
         }
         // merge
@@ -91,11 +96,13 @@
         exec(['rm', ...dir, ...dirs, wdir + 'b0.nii.gz'].join(' '));
 
         // do tractography
+        // transform bvecs: negative x-axis
+        let vecs = hddi.params.dir.map(o=>{o.x = -o.x; return o});
         // save bvals & bvecs
-        fs.writeFileSync(wdir + 'bvals.txt', [0, ...[...Array(HDDI.params.dir.length)].map(o=>1000)].join(' '));
-        fs.writeFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.x), '\n'].join(' '));
-        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.y), '\n'].join(' '));
-        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...HDDI.params.dir.map(o=>o.z), '\n'].join(' '));
+        fs.writeFileSync(wdir + 'bvals.txt', [0, ...[...Array(vecs.length)].map(o=>1000)].join(' '));
+        fs.writeFileSync(wdir + 'bvecs.txt', [0, ...vecs.map(o=>o.x), '\n'].join(' '));
+        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...vecs.map(o=>o.y), '\n'].join(' '));
+        fs.appendFileSync(wdir + 'bvecs.txt', [0, ...vecs.map(o=>o.z), '\n'].join(' '));
 
         mrtrix.mrconvert([wdir + 'dwi.nii.gz','-fslgrad', wdir + 'bvecs.txt', wdir + 'bvals.txt', wdir + 'dwi.mif', '-force']);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);

@@ -50,7 +50,7 @@ const NiiHdr = new Struct()
 function createNiftiHeader(dim, pixdim, dir) {
 /*eslint-disable camelcase*/
     var datatype = 16; // float, 2; // uchar
-    var i, sz;
+    var i;
     var newHdr = {
         sizeof_hdr: 348,
         data_type: '',
@@ -59,7 +59,7 @@ function createNiftiHeader(dim, pixdim, dir) {
         session_error: 0,
         regular: 0,
         dim_info: 0,
-        dim: [ 3, dim[0], dim[1], dim[2], 1, 1, 1, 1 ],
+        dim: [3, dim[0], dim[1], dim[2], 1, 1, 1, 1],
         intent_p1: 0,
         intent_p2: 0,
         intent_p3: 0,
@@ -67,7 +67,7 @@ function createNiftiHeader(dim, pixdim, dir) {
         datatype: datatype,
         bitpix: 32,
         slice_start: 0,
-        pixdim: [ -1, pixdim[0], pixdim[1], pixdim[2], 0, 1, 1, 1 ],
+        pixdim: [-1, pixdim[0], pixdim[1], pixdim[2], 0, 1, 1, 1],
         vox_offset: 352,
         scl_slope: 1,
         scl_inter: 0,
@@ -103,16 +103,17 @@ function createNiftiHeader(dim, pixdim, dir) {
     for(i in newHdr) {
         NiiHdr.fields[i] = newHdr[i];
     }
-    
+
     return niihdr;
 }
 function saveNiftiData(vol, dim, path) {
-    let sz = dim[0]*dim[1]*dim[2]+1;
+    const sz = dim[0]*dim[1]*dim[2]+1;
     let mri = null;
     let hdr = createNiftiHeader(dim, [1,1,1], [[1,0,0,0],[0,1,0,0],[0,0,1,0]]);
     let img = new Float32Array(sz); //Buffer(sz);
     let buffer = new Buffer(img.buffer);
-    for(i = 0; i<sz; i ++) {
+    let i;
+    for(i = 0; i<sz; i++) {
         img[i] = vol[i];
     }
     mri = new Buffer(buffer.length + hdr.length);

@@ -1,3 +1,7 @@
+const fs = require('fs');
+const code = fs.readFileSync('sobel3.js').toString();
+eval(code);
+
 const dim = [5, 5, 5]
 const vol = new Float32Array(dim[0]*dim[1]*dim[2]);
 
@@ -78,16 +82,16 @@ function print(res) {
 
 console.log("x derivative of x gradient");
 generateXGradient();
-print(xder());
+print(HDDISobel3.xder(vol, dim));
 
 console.log("x derivative of y gradient");
 generateYGradient();
-print(xder());
+print(HDDISobel3.xder(vol, dim));
 
 console.log("x derivative of xy gradient");
 generateXYGradient();
-print(xder());
+print(HDDISobel3.xder(vol, dim));
 
 console.log("y derivative of xy gradient");
 generateXYGradient();
-print(yder());
+print(HDDISobel3.yder(vol, dim));

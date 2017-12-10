@@ -43,9 +43,17 @@ var HDDISim = {
         };
     },
 
+    scale: function scale(v, l) {
+        return {
+            x: l * v.x,
+            y: l * v.y,
+            z: l * v.z
+        };
+    },
+
     /**
       * @func identifyVoxels
-      * @desc Identify voxels as background (0), surface (bv) or core (1)
+      * @desc Identify voxels as background (0), surface (boundaryValue) or core (1)
       * @param array vol An array containing voxels
       * @param object dim An array containing [nx, ny, nz], the dimensions of vol
       */
@@ -97,7 +105,7 @@ var HDDISim = {
                     for( l=0; l<con26.length; l++ ) {
                         [i, j, k] = con26[l];
                         if( this.getValue( vol, dim, x+i, y+j, z+k ) === 0 ) {
-                            this.setValue( idvol, dim, x, y, z, this.bv );
+                            this.setValue( idvol, dim, x, y, z, this.boundaryValue );
                             break;
                         }
                     }
@@ -106,11 +114,12 @@ var HDDISim = {
         }
 
         // store coordinates of border voxels
+        this.boundary = [];
         for( x = 0; x < dim[0]; ++x ) {
             for( y = 0; y < dim[1]; ++y ) {
                 for( z = 0; z < dim[2]; ++z) {
-                    if(this.getValue(idvol, dim, x, y, z) === this.bv ) {
-                        this.bvox.push({ x: x, y: y, z: z });
+                    if(this.getValue(idvol, dim, x, y, z) === this.boundaryValue ) {
+                        this.boundary.push({ x: x, y: y, z: z });
                     }
                 }
             }
@@ -118,20 +127,10 @@ var HDDISim = {
 
         if( this.debug > 2 ) {
             console.log( '%cborder voxels (index x, y, z): ', 'color: orange; ' );
-            console.log( this.bvox );
+            console.log( this.boundary );
         }
 
         return idvol;
-    },
-
-    randomDirection: function randomDirection() {
-        let v = {
-            x: Math.random() - 0.5,
-            y: Math.random() - 0.5,
-            z: Math.random() - 0.5
-        };
-
-        return v;
     },
 
     /**
@@ -186,18 +185,18 @@ var HDDISim = {
             }
 
             //take random surface voxel to start fiber
-            rindex = Math.round( Math.random() * ( this.bvox.length - 1 ) );
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
-                x: this.bvox[rindex].x,
-                y: this.bvox[rindex].y,
-                z: this.bvox[rindex].z
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
             };
-            v = this.normalise(this.randomDirection(), this.params.step);
+            v = this.scale(this.randomDirection(), this.params.step);
             fib.push([pos, v]);
             length = 0;
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // random direction
-                v2 = this.normalise(this.randomDirection(), this.params.step);
+                v2 = this.scale(this.randomDirection(), this.params.step);
                 //new direction = mix of old plus random
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
@@ -290,18 +289,18 @@ var HDDISim = {
             }
 
             // take random surface voxel to start fiber
-            rindex = Math.round( Math.random() * ( this.bvox.length - 1 ) );
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
-                x: this.bvox[rindex].x,
-                y: this.bvox[rindex].y,
-                z: this.bvox[rindex].z
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
             };
-            v = this.normalise(this.randomDirection(), this.params.step);
+            v = this.scale(this.randomDirection(), this.params.step);
             fib.push([pos, v]);
             length = 0;
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // combine with random direction
-                v2 = this.normalise(this.randomDirection(), this.params.step);
+                v2 = this.scale(this.randomDirection(), this.params.step);
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
                     y: this.params.w * v.y + (1-this.params.w)* v2.y,

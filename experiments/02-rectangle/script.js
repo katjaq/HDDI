@@ -9,7 +9,7 @@
         w: 0.9, // stiffness parameter
         step: 0.5, // step size
         minFibLength: 10,
-        ns: 1e+6, // number of streamlines to throw
+        ns: 1e+7, // number of streamlines to throw
         dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
             {x: 0.817324, y: -0.49673, z: -0.29196},
             {x: 0.465087, y: -0.03533, z: 0.88456},
@@ -46,7 +46,8 @@
 
     // identify surface
     const ident = hddi.identifyVoxels(vol, dim);
-    saveNiftiData(ident, dim, wdir + 'mask.nii.gz');
+    let mask = ident.map((v) => (v === 1));
+    saveNiftiData(mask, dim, wdir + 'mask.nii.gz');
     
     // generate streamlines
     hddi.initialise(dim);
@@ -110,6 +111,6 @@
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
         mrtrix.tensor2metric(['-fa', wdir + 'fa.nii.gz', '-adc', wdir + 'adc.nii.gz', '-num', 1 ,'-vector', wdir + 'v1.nii.gz', wdir + 'dt.mif ', '-force']);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
-        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
+        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-mask', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
     });
 } ());

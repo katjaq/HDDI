@@ -1,42 +1,3 @@
-/**
-  * @desc From https://gomakethings.com/merging-objects-with-vanilla-javascript/
-  */
-function extend() {
-    // Variables
-    var extended = {};
-    var deep = false;
-    var i = 0;
-    var length = arguments.length;
-
-    // Check if a deep merge
-    if ( Object.prototype.toString.call( arguments[0] ) === '[object Boolean]' ) {
-        deep = arguments[0];
-        i++;
-    }
-
-    // Merge the object into the extended object
-    var merge = function ( obj ) {
-        for ( var prop in obj ) {
-            if ( Object.prototype.hasOwnProperty.call( obj, prop ) ) {
-                // If deep merge and property is an object, merge properties
-                if ( deep && Object.prototype.toString.call(obj[prop]) === '[object Object]' ) {
-                    extended[prop] = extend( true, extended[prop], obj[prop] );
-                } else {
-                    extended[prop] = obj[prop];
-                }
-            }
-        }
-    };
-
-    // Loop through each object and conduct a merge
-    for ( i=0; i < length; i++ ) {
-        var obj = arguments[i];
-        merge(obj);
-    }
-
-    return extended;
-}
-
 const fs = require('fs');
 const Struct = require('Struct');
 const zlib = require('zlib');
@@ -351,9 +312,17 @@ var HDDISim = {
         };
     },
 
+    scale: function scale(v, l) {
+        return {
+            x: l * v.x,
+            y: l * v.y,
+            z: l * v.z
+        };
+    },
+
     /**
       * @func identifyVoxels
-      * @desc Identify voxels as background (0), surface (bv) or core (1)
+      * @desc Identify voxels as background (0), surface (boundaryValue) or core (1)
       * @param array vol An array containing voxels
       * @param object dim An array containing [nx, ny, nz], the dimensions of vol
       */
@@ -405,7 +374,7 @@ var HDDISim = {
                     for( l=0; l<con26.length; l++ ) {
                         [i, j, k] = con26[l];
                         if( this.getValue( vol, dim, x+i, y+j, z+k ) === 0 ) {
-                            this.setValue( idvol, dim, x, y, z, this.bv );
+                            this.setValue( idvol, dim, x, y, z, this.boundaryValue );
                             break;
                         }
                     }
@@ -414,11 +383,12 @@ var HDDISim = {
         }
 
         // store coordinates of border voxels
+        this.boundary = [];
         for( x = 0; x < dim[0]; ++x ) {
             for( y = 0; y < dim[1]; ++y ) {
                 for( z = 0; z < dim[2]; ++z) {
-                    if(this.getValue(idvol, dim, x, y, z) === this.bv ) {
-                        this.bvox.push({ x: x, y: y, z: z });
+                    if(this.getValue(idvol, dim, x, y, z) === this.boundaryValue ) {
+                        this.boundary.push({ x: x, y: y, z: z });
                     }
                 }
             }
@@ -426,25 +396,10 @@ var HDDISim = {
 
         if( this.debug > 2 ) {
             console.log( '%cborder voxels (index x, y, z): ', 'color: orange; ' );
-            console.log( this.bvox );
+            console.log( this.boundary );
         }
 
         return idvol;
-    },
-
-    randomDirection: function randomDirection() {
-        let v = {
-            x: this.random(), // green
-            y: this.random(), // blue
-            z: this.random()  // red
-/*
-            x: 0, //me.random(), // green
-            y: 0, //me.random(), // blue
-            z: 1, //me.random()  // red
-*/
-        };
-
-        return v;
     },
 
     /**
@@ -499,18 +454,18 @@ var HDDISim = {
             }
 
             //take random surface voxel to start fiber
-            rindex = Math.round( Math.random() * ( this.bvox.length - 1 ) );
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
-                x: this.bvox[rindex].x,
-                y: this.bvox[rindex].y,
-                z: this.bvox[rindex].z
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
             };
-            v = this.normalise(this.randomDirection(), this.params.step);
+            v = this.scale(this.randomDirection(), this.params.step);
             fib.push([pos, v]);
             length = 0;
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // random direction
-                v2 = this.normalise(this.randomDirection(), this.params.step);
+                v2 = this.scale(this.randomDirection(), this.params.step);
                 //new direction = mix of old plus random
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
@@ -603,18 +558,18 @@ var HDDISim = {
             }
 
             // take random surface voxel to start fiber
-            rindex = Math.round( Math.random() * ( this.bvox.length - 1 ) );
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
-                x: this.bvox[rindex].x,
-                y: this.bvox[rindex].y,
-                z: this.bvox[rindex].z
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
             };
-            v = this.normalise(this.randomDirection(), this.params.step);
+            v = this.scale(this.randomDirection(), this.params.step);
             fib.push([pos, v]);
             length = 0;
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // combine with random direction
-                v2 = this.normalise(this.randomDirection(), this.params.step);
+                v2 = this.scale(this.randomDirection(), this.params.step);
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
                     y: this.params.w * v.y + (1-this.params.w)* v2.y,
@@ -741,10 +696,6 @@ var HDDISim = {
         }
 
         return first;
-    },
-
-    random: function random() {
-        return ( Math.random() - 0.5 );
     },
 
     dot: function dot( a, b ) {
@@ -900,6 +851,82 @@ var HDDISobel3 = {
     }
 }
 
+var HDDIRandom = {
+    /**
+     * @desc https://en.wikipedia.org/wiki/Marsaglia_polar_method
+     */
+    nrandomPrecomputed: 0,
+    nrandomIsPrecomputedReady: false,
+    nrandom: function nrandom() {
+        if(this.nrandomIsPrecomputedReady) {
+            this.nrandomIsPrecomputedReady = false;
+
+            return this.nrandomPrecomputed;
+        } else {
+            let x1, x2, s, y1;
+            do {
+                x1 = 2*Math.random() - 1;
+                x2 = 2*Math.random() - 1;
+                s = x1 * x1 + x2 * x2;
+            } while ( s >= 1 || s === 0 );
+            s = Math.sqrt( (-2*Math.log(s) ) / s );
+            y1 = x1 * s;
+            this.nrandomPrecomputed = x2 * s;
+            this.nrandomIsPrecomputedReady = true;
+
+            return y1;
+        }
+    },
+
+    randomDirectionNaive: function randomDirection() {
+        let v = {
+            x: Math.random() - 0.5,
+            y: Math.random() - 0.5,
+            z: Math.random() - 0.5
+        };
+        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
+        return {
+            x: v.x/lv,
+            y: v.y/lv,
+            z: v.z/lv
+        };
+    },
+
+    /**
+      * @desc Muller's method from http://mathworld.wolfram.com/SpherePointPicking.html
+      */
+    randomDirectionMuller: function randomDirection() {
+        let v = {
+            x: this.nrandom(),
+            y: this.nrandom(),
+            z: this.nrandom()
+        };
+        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
+        return {
+            x: v.x/lv,
+            y: v.y/lv,
+            z: v.z/lv
+        };
+    },
+
+    /**
+      * @desc Marsaglia's method from http://mathworld.wolfram.com/SpherePointPicking.html
+      */
+    randomDirection: function randomDirection() {
+        let x1, x2, s;
+        do {
+            x1 = 2*Math.random() - 1;
+            x2 = 2*Math.random() - 1;
+            s = x1 * x1 + x2 * x2;
+        } while ( s >= 1 || s === 0);
+        return v = {
+            x: 2 * x1 * Math.sqrt(1 - s),
+            y: 2 * x2 * Math.sqrt(1 - s),
+            z: 1 - 2 * s
+        };
+    }
+}
+
 /*
 Hypothesis-driven Diffusion Imaging.
 A script to generate fibers based on the anatomy.
@@ -924,14 +951,9 @@ const mrtrix = require('./interfaces/mrtrix');
 
 var HDDIApp = {
     debug: 0,
-    nifti1: null, // mask or T1 in format .nii
-    nifti2: null, // identify surface voxels (set to bv) and inside volume (set 1 if > 0) and outside (0),
-    nifti3: null, // contains value 1 for every visited voxel
-    nifti4: null, // stores direction values from one visit
-    bv: 2,        // border value
-    bvox: [],     // border voxels
-    vol: [],      // new volum array (storing direction value sum of all passed fibers)
-    vvC: [],      // voxelVisitCount: array (blocksize) containing integer: how many times has voxel been passed by a fiber
+    boundaryValue: 2,        // border value
+    boundary: null,     // border voxels
+    vol: null,      // new volum array (storing direction value sum of all passed fibers)
     rho: null,    // fibre density volume
     dir: null     // fibre direction volume
 }
@@ -945,7 +967,6 @@ props=Object.keys(HDDIApp);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDIApp[prop];
     }
 }
@@ -955,7 +976,6 @@ props=Object.keys(HDDISim);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDISim[prop];
     }
 }
@@ -965,13 +985,18 @@ props=Object.keys(HDDISobel3);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDISobel3[prop];
     }
 }
-//HDDI.prototype = extend(HDDI.prototype, HDDISim.prototype);
-//HDDI.prototype = extend(HDDI.prototype, HDDISobel3.prototype);
-console.log(HDDI.prototype);
+
+console.log('\nExtending HDDI from HDDIRandom');
+props=Object.keys(HDDIRandom);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        HDDI.prototype[prop] = HDDIRandom[prop];
+    }
+}
 
 /*
     To generate gradient tables:
@@ -980,7 +1005,7 @@ console.log(HDDI.prototype);
 (function () {
     "use strict";
 
-    console.log("Sphere test");
+    console.log("Two folds test, with different gradients");
 
     let hddi = new HDDI();
 
@@ -989,18 +1014,18 @@ console.log(HDDI.prototype);
         step: 0.5, // step size
         minFibLength: 10,
         ns: 1e+7, // number of streamlines to throw
-        dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
-            {x: 0.817324, y: -0.49673, z: -0.29196},
-            {x: 0.465087, y: -0.03533, z: 0.88456},
-            {x: 0.820439, y: -0.31517, z: 0.477018},
-            {x: -0.80334, y: 0.593293, z: -0.05141},
-            {x: -0.15636, y: 0.788990, z: -0.59418},
-            {x: -0.11253, y: -0.34483, z: -0.93189}
+        dir: [      // array containing the diffusion directions
+            {x:-0.049, y:-0.996, z:-0.074},
+            {x:-0.996, y:0.043, z:0.080},
+            {x:0.078, y:-0.078, z:0.994},
+            {x:0.498, y:-0.556, z:-0.665},
+            {x:-0.524, y:-0.663, z:0.535},
+            {x:0.708, y:0.344, z:0.617}
         ]
     };
     hddi.params = params;
 
-    const wdir = 'experiments/05-twofolds/results/';
+    const wdir = 'experiments/06-twofolds-different-gradients/results/';
     const exec = require('child_process').execSync;
 
     // generate an ellipsoid with two folds
@@ -1028,7 +1053,8 @@ console.log(HDDI.prototype);
 
     // identify surface
     const ident = hddi.identifyVoxels(vol, dim);
-    saveNiftiData(ident, dim, wdir + 'mask.nii.gz');
+    let mask = ident.map((v) => (v === 1));
+    saveNiftiData(mask, dim, wdir + 'mask.nii.gz');
     
     // generate streamlines
     hddi.initialise(dim);
@@ -1092,6 +1118,6 @@ console.log(HDDI.prototype);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
         mrtrix.tensor2metric(['-fa', wdir + 'fa.nii.gz', '-adc', wdir + 'adc.nii.gz', '-num', 1 ,'-vector', wdir + 'v1.nii.gz', wdir + 'dt.mif ', '-force']);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
-        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
+        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-mask', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
     });
 } ());

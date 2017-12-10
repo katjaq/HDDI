@@ -22,14 +22,9 @@ const mrtrix = require('./interfaces/mrtrix');
 
 var HDDIApp = {
     debug: 0,
-    nifti1: null, // mask or T1 in format .nii
-    nifti2: null, // identify surface voxels (set to bv) and inside volume (set 1 if > 0) and outside (0),
-    nifti3: null, // contains value 1 for every visited voxel
-    nifti4: null, // stores direction values from one visit
-    bv: 2,        // border value
-    bvox: [],     // border voxels
-    vol: [],      // new volum array (storing direction value sum of all passed fibers)
-    vvC: [],      // voxelVisitCount: array (blocksize) containing integer: how many times has voxel been passed by a fiber
+    boundaryValue: 2,        // border value
+    boundary: null,     // border voxels
+    vol: null,      // new volum array (storing direction value sum of all passed fibers)
     rho: null,    // fibre density volume
     dir: null     // fibre direction volume
 }
@@ -43,7 +38,6 @@ props=Object.keys(HDDIApp);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDIApp[prop];
     }
 }
@@ -53,7 +47,6 @@ props=Object.keys(HDDISim);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDISim[prop];
     }
 }
@@ -63,13 +56,18 @@ props=Object.keys(HDDISobel3);
 for(ind in props) {
     prop = props[ind];
     if(typeof prop !== 'undefined') {
-        console.log("["+prop+"]");
         HDDI.prototype[prop] = HDDISobel3[prop];
     }
 }
-//HDDI.prototype = extend(HDDI.prototype, HDDISim.prototype);
-//HDDI.prototype = extend(HDDI.prototype, HDDISobel3.prototype);
-console.log(HDDI.prototype);
+
+console.log('\nExtending HDDI from HDDIRandom');
+props=Object.keys(HDDIRandom);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        HDDI.prototype[prop] = HDDIRandom[prop];
+    }
+}
 
 /*
     To generate gradient tables:

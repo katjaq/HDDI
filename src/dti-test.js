@@ -1,3 +1,7 @@
+const fs = require('fs');
+const code = fs.readFileSync('dti.js').toString();
+eval(code);
+
 const dir = [
     {x: 0.817324, y: -0.49673, z: -0.29196},
     {x: 0.465087, y: -0.03533, z: 0.88456},

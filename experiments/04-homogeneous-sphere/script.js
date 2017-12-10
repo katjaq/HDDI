@@ -44,7 +44,8 @@
 
     // identify surface
     const ident = hddi.identifyVoxels(vol, dim);
-    saveNiftiData(ident, dim, wdir + 'mask.nii.gz');
+    let mask = ident.map((v) => (v === 1));
+    saveNiftiData(mask, dim, wdir + 'mask.nii.gz');
 
     // initialise rho and dir
     hddi.initialise(dim);
@@ -107,6 +108,6 @@
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
         mrtrix.tensor2metric(['-fa', wdir + 'fa.nii.gz', '-adc', wdir + 'adc.nii.gz', '-num', 1 ,'-vector', wdir + 'v1.nii.gz', wdir + 'dt.mif ', '-force']);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
-        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
+        mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-mask', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
     });
 } ());

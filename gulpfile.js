@@ -2,16 +2,20 @@ const gulp = require('gulp');
 const concat = require('gulp-concat');
 const print = require('gulp-print');
 
-const sourceFiles = ['mii.js', 'dti.js', 'sim.js', 'sobel3.js', 'random.js', 'app.js'];
+const sourceFiles = ['tract.js', 'nii.js', 'linalg.js', 'dti.js', 'sim.js', 'sobel3.js', 'random.js', 'app.js'];
 const experimentFiles = [
 /*
     '01-ellipsoid/script.js',
     '02-rectangle/script.js',
     '03-sphere/script.js',
     '04-homogeneous-sphere/script.js',
-    '05-twofolds/script.js',
+    '05-twofolds/script.js'
+    '06-twofolds-different-gradients/script.js',
+    '07-ferret-p4/script.js',
+    '08-ferret-p4-longer-fibres/script.js',
+    '09-sphere-sticky/script.js',
 */
-    '06-twofolds-different-gradients/script.js'
+    '10-twofolds-different-gradients-sticky/script.js'
 ];
 const src = 'src/';
 const exp = 'experiments/';

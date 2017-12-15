@@ -34,23 +34,6 @@ var HDDISim = {
         }
     },
 
-    normalise: function normalise(v, l) {
-        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
-        return {
-            x: l * v.x / lv,
-            y: l * v.y / lv,
-            z: l * v.z / lv
-        };
-    },
-
-    scale: function scale(v, l) {
-        return {
-            x: l * v.x,
-            y: l * v.y,
-            z: l * v.z
-        };
-    },
-
     /**
       * @func identifyVoxels
       * @desc Identify voxels as background (0), surface (boundaryValue) or core (1)
@@ -172,6 +155,7 @@ var HDDISim = {
         let length, max, min;
         let v, v2;
         let bar = new progress.Bar({}, progress.Presets.shades_classic);
+        let fibres = [];
 
         bar.start(this.params.ns, 0);
 
@@ -184,7 +168,7 @@ var HDDISim = {
                 bar.update(count);
             }
 
-            //take random surface voxel to start fiber
+            // take random boundary voxel to start fiber
             rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
                 x: this.boundary[rindex].x + 0.5,
@@ -197,7 +181,8 @@ var HDDISim = {
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // random direction
                 v2 = this.scale(this.randomDirection(), this.params.step);
-                //new direction = mix of old plus random
+
+                // new direction = mix of old plus random
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
                     y: this.params.w * v.y + (1-this.params.w)* v2.y,
@@ -233,7 +218,8 @@ var HDDISim = {
                 }
             }
 
-            for(i = 0; i<fib.length; i += 1) {
+            // stroke the streamline in the density and direction volumes
+            for(i = 0; i < fib.length; i++) {
                 [pos, v] = fib[i];
                 //set every visited voxel to 1
                 ix = parseInt(pos.x);
@@ -241,6 +227,15 @@ var HDDISim = {
                 iz = parseInt(pos.z);
                 this.addValue( this.rho, dim, ix, iy, iz, 1 );
                 this.addValueN( this.dir, dim, ix, iy, iz, v );
+            }
+
+            // if part of the last 5k fibres, store it
+            if(this.params.ns - count <5000) {
+                let fib2 = [];
+                for(i=0;i<fib.length;i+=Math.min(1, fib.length/10)) {
+                    fib2.push([fib[i][0].x,fib[i][0].y,fib[i][0].z]);
+                }
+                fibres.push(fib2);
             }
 
             count += 1;
@@ -251,6 +246,164 @@ var HDDISim = {
             console.log( '%cgenerate voxels finito', 'color: light-green; ' );
         }
         console.log("Min and Max fibre length:", min, max);
+        writeTck(fibres, "test.tck");
+    },
+
+    /**
+      * @func genStickyStreamlines
+      * @desc Generates random fibres which tend to follow the previous directions
+      */
+    genStickyStreamlines: function genStickyStreamlines(vol, dim) {
+        console.log( '%cgenerate fibres', 'color: green; ' );
+
+        let i;
+        let count;
+        let pos, rindex;
+        let ix, iy, iz;
+        let length, max, min;
+        let v, v2, v3;
+        let dot;
+        let bar = new progress.Bar({}, progress.Presets.shades_classic);
+        let fibres = [];
+
+        bar.start(this.params.ns, 0);
+
+        let md, mdir = [];
+        let a;
+        this.params.anis = [];
+        let anis = this.params.anis;
+        for(ix=0;ix<dim[0];ix++) {
+            for(iy=0;iy<dim[1];iy++) {
+                for(iz=0;iz<dim[2];iz++) {
+                    mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix]=this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
+                    this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix]=0.2;
+                }
+            }
+        }
+
+        // generate fibres
+        count = 0;
+        while( count < this.params.ns) {
+            let fib = [];
+
+            if( count%1e+3 === 0 ) {
+                bar.update(count);
+            }
+
+            // take random boundary voxel to start fiber
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
+            pos = {
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
+            };
+            v = this.scale(this.randomDirection(), this.params.step);
+            fib.push([pos, v]);
+            length = 0;
+            while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
+                // random direction
+                v2 = this.scale(this.randomDirection(), this.params.step);
+
+                // local main orientation
+                v3 = this.scale(mdir[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)], this.params.step);
+
+                //  make consistent with own direction
+                dot = this.dot(v3, v);
+                if(dot<0) {
+                    v3 = this.scale(v3, -1);
+                }
+
+                // substrate anisotropy
+                a = Math.max(0, this.params.anis[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)] - 0.2)/0.8;
+
+                // combine own direction, substrate and randomness
+                v = this.normalise({
+                    x: a*v3.x + (1-a)*(this.params.w*v.x + (1-this.params.w)*v2.x) ,
+                    y: a*v3.y + (1-a)*(this.params.w*v.y + (1-this.params.w)*v2.y) ,
+                    z: a*v3.z + (1-a)*(this.params.w*v.z + (1-this.params.w)*v2.z) ,
+                }, this.params.step);
+
+                // advance streamline
+                pos = {
+                    x: pos.x + v.x,
+                    y: pos.y + v.y,
+                    z: pos.z + v.z
+                };
+                fib.push([pos, v]);
+                // compute length
+                length += Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
+            }
+
+            // filter out short fibres
+            if(length < this.params.minFibLength ) {
+                continue;
+            }
+
+            // compute min and max fibre length
+            if(count === 0) {
+                min = length;
+                max = length;
+            } else {
+                if(length < min) {
+                    min = length;
+                }
+                if(length > max) {
+                    max = length;
+                }
+            }
+
+            // stroke the streamline in the density and direction volumes
+            // update main direction and anisotropy
+            for(i = 0; i < fib.length; i++) {
+                [pos, v] = fib[i];
+
+                // voxel coordinates
+                ix = parseInt(pos.x);
+                iy = parseInt(pos.y);
+                iz = parseInt(pos.z);
+
+                //set every visited voxel to 1
+                this.addValue( this.rho, dim, ix, iy, iz, 1 );
+
+                // update the directions
+                this.addValueN( this.dir, dim, ix, iy, iz, v );
+
+                // update main orientation (independent of direction)
+                md = mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix];
+                a = this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix];
+                dot = this.dot(md, v);
+                if(dot<0) {
+                    v = this.scale(v, -1);
+                }
+                md = {
+                    x: this.params.dmass * md.x + (1-this.params.dmass)*v.x,
+                    y: this.params.dmass * md.y + (1-this.params.dmass)*v.y,
+                    z: this.params.dmass * md.z + (1-this.params.dmass)*v.z
+                }
+                a = this.params.dmass * a + (1-this.params.dmass) * this.norm(this.sub(v, this.scale(md, Math.abs(this.dot(v,md))/this.dot(md,md))));
+                
+                mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix] = md;
+                this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix] = a;
+            }
+
+            // if part of the last 5k fibres, store it
+            if(this.params.ns - count <5000) {
+                let fib2 = [];
+                for(i=0;i<fib.length;i+=Math.min(1, fib.length/10)) {
+                    fib2.push([fib[i][0].x,fib[i][0].y,fib[i][0].z]);
+                }
+                fibres.push(fib2);
+            }
+
+            count += 1;
+        }
+        bar.update(this.params.ns);
+        bar.stop();
+        if( this.debug > 2 ) {
+            console.log( '%cgenerate voxels finito', 'color: light-green; ' );
+        }
+        console.log("Min and Max fibre length:", min, max);
+        writeTck(fibres, "test-sticky.tck");
     },
 
     /**
@@ -427,10 +580,6 @@ var HDDISim = {
         }
 
         return first;
-    },
-
-    dot: function dot( a, b ) {
-        return( a.x * b.x + a.y * b.y + a.z * b.z )
     },
 
     getBvecsIn: function getBvecsIn() {

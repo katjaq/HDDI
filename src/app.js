@@ -42,6 +42,15 @@ for(ind in props) {
     }
 }
 
+console.log('\nExtending HDDI from HDDILinAlg');
+props=Object.keys(HDDILinAlg);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        HDDI.prototype[prop] = HDDILinAlg[prop];
+    }
+}
+
 console.log('\nExtending HDDI from HDDISim');
 props=Object.keys(HDDISim);
 for(ind in props) {

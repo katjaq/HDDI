@@ -18,6 +18,7 @@
   "homepage": "https://github.com/katjaq/HDDI#readme",
   "dependencies": {
     "cli-progress": "^1.6.0",
+    "gpu.js": "^1.0.0-rc.10",
     "mathjs": "^3.17.0",
     "struct": "0.0.12"
   },

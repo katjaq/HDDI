@@ -57,6 +57,23 @@ var HDDIRandom = {
     },
 
     /**
+      * @desc Muller's method adapted to an ellipsoid. Goes back to the case of a sphere if a=b=c
+      */
+    randomDirectionMullerEllipsoid: function randomDirectionMullerEllipsoid(a, b, c) {
+        let v = {
+            x: a * this.nrandom(),
+            y: b * this.nrandom(),
+            z: c * this.nrandom()
+        };
+        let lv = Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
+        return {
+            x: v.x/lv,
+            y: v.y/lv,
+            z: v.z/lv
+        };
+    },
+
+    /**
       * @desc Marsaglia's method from http://mathworld.wolfram.com/SpherePointPicking.html
       */
     randomDirection: function randomDirection() {

@@ -1,6 +1,181 @@
-const fs = require('fs');
-const Struct = require('Struct');
-const zlib = require('zlib');
+if(typeof fs === 'undefined') {
+    var fs = require('fs');
+}
+if(typeof Struct === 'undefined') {
+    var Struct = require('struct');
+}
+
+function readTck(path) {
+    data = fs.readFileSync(path);
+    let i, j, str;
+    let hdr = {};
+    let entry;
+    j=0;
+    for(i=0;i<data.length;i++) {
+        if(data[i] === 10) {
+            str = data.slice(j,i).toString();
+            entry = str.split(/:[ ]*/);
+            hdr[entry[0]] = entry[1];
+            j=i+1;
+            if( str === 'END') {
+                break;
+            }
+        }
+    }
+    console.log(hdr);
+    let count = parseInt(hdr.total_count);
+    let offset = parseInt(hdr.file.split(' ')[1]);
+
+    const s = data.slice(offset);
+
+    let x, y, z;
+    let strm = [];
+    let trk = [];
+    for(i=0;i<count;i++) {
+        x = s.readFloatLE((3*i+0)*4);
+        y = s.readFloatLE((3*i+1)*4);
+        z = s.readFloatLE((3*i+2)*4);
+        if(isNaN(x)) {
+            trk.push(strm);
+            strm = [];
+            continue;
+        }
+        strm.push([x, y, z]);
+    }
+
+    return {hdr: hdr, tck: trk};
+}
+
+function writeTck(streamlines, path) {
+    const fd = fs.openSync(path, 'w');
+    let i, j, nvertices = 0;
+    for(i=0;i<streamlines.length;i++) {
+        nvertices += streamlines[i].length;
+    }
+    let hdrSize = 700;
+    let hdr = [
+        "mrtrix tracks",
+        "init_threshold: 0.1",
+        "max_angle: 9",
+        "max_dist: 24",
+        "max_num_seeds: 10000000",
+        "max_num_tracks: " + 50000,
+        "max_seed_attempts: 1000",
+        "method: TensorDet",
+        "min_dist: 1.2",
+        "mrtrix_version: f835a76b",
+        "rk4: 0",
+        "source: simulation.mif",
+        "step_size: 0.02",
+        "stop_on_all_include: 0",
+        "threshold: 0.1",
+        "timestamp: 1506408029.8440241814",
+        "unidirectional: 0",
+        "roi: seed simulation.nii.gz",
+        "roi: mask simulation.nii.gz",
+        "datatype: Float32LE",
+        "file: . " + hdrSize,
+        "count: " + streamlines.length,
+        "total_count: " + nvertices,
+        "END"
+    ].join("\n");
+    fs.writeSync(fd, hdr);
+
+    let offset = new Uint8Array(hdrSize - hdr.length).fill(0);
+    fs.writeSync(fd, offset);
+
+    const nanVal = Math.sqrt(-1);
+    const nullVal = null;
+    let floatVal = new Float32Array(3);
+    for(i=0;i<streamlines.length;i++) {
+        for(j=0;j<streamlines[i].length;j++) {
+            floatVal[0] = streamlines[i][j][0];
+            floatVal[1] = streamlines[i][j][1];
+            floatVal[2] = streamlines[i][j][2];
+            fs.writeSync(fd, new Buffer(floatVal.buffer));
+        }
+        floatVal[0] = NaN;
+        floatVal[1] = NaN;
+        floatVal[2] = NaN;
+        fs.writeSync(fd, new Buffer(floatVal.buffer));
+    }
+    fs.writeSync(fd, new Buffer((new Float32Array(1).fill(null)).buffer));
+    fs.closeSync(fd);
+}
+
+const TrkHdr = new Struct()
+    .chars('id_string', 6)
+    .array('dim', 3, 'word16Sle')
+    .array('voxel_size', 3, 'floatle')
+    .array('origin', 3, 'floatle')
+    .word16Sle('n_scalars')
+    .chars('scalar_name', 200)
+    .word16Sle('n_properties')
+    .chars('property_name', 200)
+    .array('vox_to_ras', 16, 'floatle')
+    .chars('reserved', 444)
+    .chars('voxel_order', 4)
+    .chars('pad2', 4)
+    .array('image_orientation_patient', 6, 'floatle')
+    .chars('pad1', 2)
+    .word8('invert_x')
+    .word8('invert_y')
+    .word8('invert_z')
+    .word8('invert_xy')
+    .word8('invert_yz')
+    .word8('invert_zx')
+    .word32Sle('n_count')
+    .word32Sle('version')
+    .word32Sle('hdr_size');
+
+function readTrk(path) {
+    data = fs.readFileSync(path);
+    TrkHdr.allocate();
+    TrkHdr._setBuff(data);
+    var hdr = JSON.parse(JSON.stringify(TrkHdr.fields));
+    console.log(hdr);
+
+    // read tractography
+    s = data.slice(hdr.hdr_size);
+    console.log(`n_count=${hdr.n_count}`);
+    let i, j, k, l, n;
+    i = 0;
+    let trk = [];
+    for(j=0;j<hdr.n_count;j++) {
+        let pr = [];
+        let strm=[];
+
+        // read number of vertices in streamline
+        n = s.readUInt32LE((i++)*4);
+
+        // read streamline
+        for(k=0;k<n;k++) {
+            // read x, y and z coordinates of vertices
+            strm.push([
+                s.readFloatLE((i++)*4),
+                s.readFloatLE((i++)*4),
+                s.readFloatLE((i++)*4)
+            ]);
+            // read vertex properties
+            for(l=0;l<hdr.n_properties; l++) {
+                pr.push(s.readFloatLE((i++)*4));
+            }
+        }
+
+        trk.push(strm);
+    }
+    return {hdr: hdr, trk: trk};
+}
+console.log(typeof fs);
+console.log(typeof Struct);
+
+if(typeof fs === 'undefined') {
+    var fs = require('fs');
+}
+if(typeof Struct === 'undefined') {
+    var Struct = require('struct');
+}
+var zlib = require('zlib');
 
 const NiiHdr = new Struct()
         .word32Sle('sizeof_hdr')        // Size of the header. Must be 348 (bytes)
@@ -137,136 +312,649 @@ function saveNiftiData(vol, dim, path) {
     return pr;
 }
 
+function loadNiftiData(path) {
+    var niigz = fs.readFileSync(path);
+
+    var pr = new Promise(function (resolve, reject) {
+        zlib.gunzip(niigz, function (err, nii) {
+            if(err) {
+                reject(err);
+
+                return;
+            }
+
+            NiiHdr._setBuff(nii);
+            var h = JSON.parse(JSON.stringify(NiiHdr.fields));
+
+            if (h.sizeof_hdr != 348) {
+                reject(new Error("Can't read Big Endian data"));
+
+                return;
+            }
+
+            var vox_offset = h.vox_offset;
+            var sizeof_hdr = h.sizeof_hdr;
+
+            const datatype = h.datatype;
+            const dim = [h.dim[1],h.dim[2],h.dim[3]];
+            const pixdim = [h.pixdim[1],h.pixdim[2],h.pixdim[3]];
+            let data, j, tmp;
+
+            switch(datatype) {
+                case 2: // UCHAR
+                    data = nii.slice(vox_offset);
+                    break;
+                case 4: // SHORT
+                    tmp = nii.slice(vox_offset);
+                    data = new Int16Array(dim[0]*dim[1]*dim[2]);
+                    for(j = 0; j<dim[0]*dim[1]*dim[2]; j += 1) {
+                        data[j] = tmp.readInt16LE(j*2);
+                    }
+                    break;
+                case 8: // INT
+                    tmp = nii.slice(vox_offset);
+                    data = new Uint32Array(dim[0]*dim[1]*dim[2]);
+                    for(j = 0; j<dim[0]*dim[1]*dim[2]; j += 1) {
+                        data[j] = tmp.readUInt32LE(j*4);
+                    }
+                    break;
+                case 16: // FLOAT
+                    tmp = nii.slice(vox_offset);
+                    data = new Float32Array(dim[0]*dim[1]*dim[2]);
+                    for(j = 0; j<dim[0]*dim[1]*dim[2]; j += 1) {
+                        data[j] = tmp.readFloatLE(j*4);
+                    }
+                    break;
+                case 256: // INT8
+                    tmp = nii.slice(vox_offset);
+                    data = new Int8Array(dim[0]*dim[1]*dim[2]);
+                    for(j = 0; j<dim[0]*dim[1]*dim[2]; j += 1) {
+                        data[j] = tmp.readInt8(j);
+                    }
+                    break;
+                case 512: // UINT16
+                    tmp = nii.slice(vox_offset);
+                    data = new Uint16Array(dim[0]*dim[1]*dim[2]);
+                    for(j = 0; j<dim[0]*dim[1]*dim[2]; j += 1) {
+                        data[j] = tmp.readUInt16LE(j*2);
+                    }
+                    break;
+                default: {
+                    reject(new Error("ERROR: Unknown dataType: " + datatype));
+
+                    return;
+                }
+            }
+
+            resolve({vol: data, dim: dim});
+        });
+    });
+
+    return pr;
+}
+
+
+var HDDILinAlg = {
+    /**
+      * @desc 3D vector addition
+      */
+    add: function add( a, b ) {
+        return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+    },
+
+    /**
+      * @desc 3D vector subtraction
+      */
+    sub: function sub( a, b ) {
+        return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    },
+
+    /**
+      * @desc 3D vector dot product
+      */
+    dot: function dot( a, b ) {
+        return( a.x * b.x + a.y * b.y + a.z * b.z )
+    },
+
+    normalise: function normalise(v, l) {
+        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
+        return {
+            x: l * v.x / lv,
+            y: l * v.y / lv,
+            z: l * v.z / lv
+        };
+    },
+
+    normVec: function normVec(v) {
+        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
+        return {
+            x: v.x / lv,
+            y: v.y / lv,
+            z: v.z / lv
+        };
+    },
+
+    norm: function norm(v) {
+        return Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
+    },
+
+    scale: function scale(v, l) {
+        return {
+            x: l * v.x,
+            y: l * v.y,
+            z: l * v.z
+        };
+    },
+
+    /**
+      * @desc multiplication of matrices a and b
+      */
+    mult: function mult(a, b) {
+        let r,c,i;
+        let res = new Array(a.length).fill(0);
+        res=res.map(o=>new Array(b[0].length).fill(0));
+        for(r=0;r<a.length;r++) {
+            for(c=0;c<b[0].length;c++) {
+                for(i=0;i<a[0].length;i++) {
+                    res[r][c] += a[r][i]*b[i][c];
+                }
+            }
+        }
+
+        return res;
+    },
+
+    /**
+      * @desc transpose of matrix a
+      */
+    transpose: function transpose(a) {
+        let i,j,r = new Array(a[0].length).fill(0);
+        r=r.map(o=>new Array(a.length).fill(0));
+        for(i=0;i<a.length;i++)
+        for(j=0;j<a[0].length;j++) {
+            r[j][i] = a[i][j];
+        }
+        return r;
+    },
+
+    /**
+      * @desc make a diagonal matrix from vector v
+      */
+    diag: function diag(v) {
+        let m = new Array(v.length).fill(0);
+        m = m.map((o) => new Array(v.length).fill(0));
+        v.map((o,i)=>m[i][i]=o);
+
+        return m;
+    },
+
+    /**
+      * @desc This function comes from the package numeric.js 
+      *       Shanti Rao sent me this routine by private email. I had to modify it
+      *       slightly to work on Arrays instead of using a Matrix object.
+      *       It is apparently translated from http://stitchpanorama.sourceforge.net/Python/svd.py
+      */
+
+    svd: function svd(A) {
+        //Compute the thin SVD from G. H. Golub and C. Reinsch, Numer. Math. 14, 403-420 (1970)
+        let temp;
+        let prec= 2.220446049250313e-16; //numeric.epsilon; //Math.pow(2,-52) // assumes double prec
+        let tolerance= 1.e-64/prec;
+        let itmax= 50;
+        let c=0;
+        let i=0;
+        let j=0;
+        let k=0;
+        let l=0;
+
+        let u= JSON.parse(JSON.stringify(A)); // numeric.clone(A);
+        let m= u.length;
+        let n= u[0].length;
+
+        if (m < n) {
+            throw "Need more rows than columns";
+        }
+
+        let e = new Array(n);
+        let q = new Array(n);
+        for (i=0; i<n; i++) {
+            e[i] = 0.0;
+            q[i] = 0.0;
+        }
+        let v = new Array(n).fill(0);
+        v = v.map((o) => new Array(n).fill(0));
+
+        function pythag(a,b) {
+            a = Math.abs(a)
+            b = Math.abs(b)
+            if (a > b)
+                return a*Math.sqrt(1.0+(b*b/a/a))
+            else if (b == 0.0)
+                return a
+            return b*Math.sqrt(1.0+(a*a/b/b))
+        }
+
+        //Householder's reduction to bidiagonal form
+
+        let f= 0.0;
+        let g= 0.0;
+        let h= 0.0;
+        let x= 0.0;
+        let y= 0.0;
+        let z= 0.0;
+        let s= 0.0;
+
+        for (i=0; i < n; i++) {
+            e[i]= g;
+            s= 0.0;
+            l= i+1;
+            for (j=i; j < m; j++)
+                s += (u[j][i]*u[j][i]);
+            if (s <= tolerance) {
+                g= 0.0;
+            } else {
+                f= u[i][i];
+                g= Math.sqrt(s);
+                if (f >= 0.0) g= -g;
+                h= f*g-s
+                u[i][i]=f-g;
+                for (j=l; j < n; j++)
+                {
+                    s= 0.0
+                    for (k=i; k < m; k++)
+                        s += u[k][i]*u[k][j]
+                    f= s/h
+                    for (k=i; k < m; k++)
+                        u[k][j]+=f*u[k][i]
+                }
+            }
+            q[i]= g
+            s= 0.0
+            for (j=l; j < n; j++) {
+                s= s + u[i][j]*u[i][j]
+            }
+            if (s <= tolerance) {
+                g= 0.0;
+            } else {
+                f= u[i][i+1]
+                g= Math.sqrt(s)
+                if (f >= 0.0) g= -g
+                h= f*g - s
+                u[i][i+1] = f-g;
+                for (j=l; j < n; j++) {
+                    e[j]= u[i][j]/h;
+                }
+                for (j=l; j < m; j++) {
+                    s=0.0
+                    for (k=l; k < n; k++) {
+                        s += (u[j][k]*u[i][k])
+                    }
+                    for (k=l; k < n; k++) {
+                        u[j][k]+=s*e[k]
+                    }
+                }
+            }
+            y= Math.abs(q[i])+Math.abs(e[i])
+            if (y>x)
+                x=y
+        }
+
+        // accumulation of right hand transformations
+        for (i=n-1; i != -1; i+= -1) {
+            if (g != 0.0) {
+                h= g*u[i][i+1];
+                for (j=l; j < n; j++) {
+                    v[j][i]=u[i][j]/h;
+                }
+                for (j=l; j < n; j++) {
+                    s=0.0
+                    for (k=l; k < n; k++) {
+                        s += u[i][k]*v[k][j];
+                    }
+                    for (k=l; k < n; k++) {
+                        v[k][j]+=(s*v[k][i]);
+                    }
+                }
+            }
+            for (j=l; j < n; j++) {
+                v[i][j] = 0;
+                v[j][i] = 0;
+            }
+            v[i][i] = 1;
+            g= e[i]
+            l= i
+        }
+        // accumulation of left hand transformations
+        for (i=n-1; i != -1; i+= -1) {
+            l= i+1
+            g= q[i]
+            for (j=l; j < n; j++)
+                u[i][j] = 0;
+            if (g != 0.0) {
+                h= u[i][i]*g
+                for (j=l; j < n; j++) {
+                    s=0.0
+                    for (k=l; k < m; k++) s += u[k][i]*u[k][j];
+                    f= s/h
+                    for (k=i; k < m; k++) u[k][j]+=f*u[k][i];
+                }
+                for (j=i; j < m; j++) u[j][i] = u[j][i]/g;
+            }
+            else
+                for (j=i; j < m; j++) u[j][i] = 0;
+            u[i][i] += 1;
+        }
+
+        // diagonalization of the bidiagonal form
+        prec= prec*x
+        for (k=n-1; k != -1; k+= -1) {
+            for (let iteration=0; iteration < itmax; iteration++)
+            { // test f splitting
+                let test_convergence = false
+                for (l=k; l != -1; l+= -1)
+                {
+                    if (Math.abs(e[l]) <= prec) {
+                        test_convergence= true;
+                        break;
+                    }
+                    if (Math.abs(q[l-1]) <= prec) {
+                        break
+                    }
+                }
+                if (!test_convergence)
+                { // cancellation of e[l] if l>0
+                    c= 0.0
+                    s= 1.0
+                    let l1= l-1
+                    for (i =l; i<k+1; i++)
+                    {
+                        f= s*e[i]
+                        e[i]= c*e[i]
+                        if (Math.abs(f) <= prec)
+                            break
+                        g= q[i]
+                        h= pythag(f,g)
+                        q[i]= h
+                        c= g/h
+                        s= -f/h
+                        for (j=0; j < m; j++)
+                        {
+                            y= u[j][l1]
+                            z= u[j][i]
+                            u[j][l1] =  y*c+(z*s)
+                            u[j][i] = -y*s+(z*c)
+                        }
+                    }
+                }
+                // test f convergence
+                z= q[k]
+                if (l == k)
+                { //convergence
+                    if (z<0.0)
+                    { //q[k] is made non-negative
+                        q[k]= -z
+                        for (j=0; j < n; j++)
+                            v[j][k] = -v[j][k]
+                    }
+                    break  //break out of iteration loop and move on to next k value
+                }
+                if (iteration >= itmax-1) {
+                    throw 'Error: no convergence.'
+                }
+                // shift from bottom 2x2 minor
+                x= q[l]
+                y= q[k-1]
+                g= e[k-1]
+                h= e[k]
+                f= ((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y)
+                g= pythag(f,1.0)
+                if (f < 0.0)
+                    f= ((x-z)*(x+z)+h*(y/(f-g)-h))/x
+                else
+                    f= ((x-z)*(x+z)+h*(y/(f+g)-h))/x
+                // next QR transformation
+                c= 1.0
+                s= 1.0
+                for (i=l+1; i< k+1; i++) {
+                    g= e[i]
+                    y= q[i]
+                    h= s*g
+                    g= c*g
+                    z= pythag(f,h)
+                    e[i-1]= z
+                    c= f/z
+                    s= h/z
+                    f= x*c+g*s
+                    g= -x*s+g*c
+                    h= y*s
+                    y= y*c
+                    for (j=0; j < n; j++)
+                    {
+                        x= v[j][i-1]
+                        z= v[j][i]
+                        v[j][i-1] = x*c+z*s
+                        v[j][i] = -x*s+z*c
+                    }
+                    z= pythag(f,h)
+                    q[i-1]= z
+                    c= f/z
+                    s= h/z
+                    f= c*g+s*y
+                    x= -s*g+c*y
+                    for (j=0; j < m; j++) {
+                        y= u[j][i-1]
+                        z= u[j][i]
+                        u[j][i-1] = y*c+z*s
+                        u[j][i] = -y*s+z*c
+                    }
+                }
+                e[l]= 0.0
+                e[k]= f
+                q[k]= x
+            }
+        }
+        //vt= transpose(v)
+        //return (u,q,vt)
+        for (i=0;i<q.length; i++)
+          if (q[i] < prec) q[i] = 0
+
+        //sort eigenvalues
+        for (i=0; i< n; i++) {
+        //writeln(q)
+         for (j=i-1; j >= 0; j--) {
+          if (q[j] < q[i]) {
+        //  writeln(i,'-',j)
+           c = q[j]
+           q[j] = q[i]
+           q[i] = c
+           for(k=0;k<u.length;k++) {
+             temp = u[k][i];
+             u[k][i] = u[k][j];
+             u[k][j] = temp;
+           }
+           for(k=0;k<v.length;k++) {
+             temp = v[k][i];
+             v[k][i] = v[k][j];
+             v[k][j] = temp;
+           }
+        //   u.swapCols(i,j)
+        //    v.swapCols(i,j)
+           i = j
+          }
+         }
+        }
+
+        return {U:u,S:q,V:v}
+    },
+
+    /**
+      * @desc The inverse of matrix a, where a=USV', is a^(-1) = VSU': https://www.cse.unr.edu/~bebis/CS791E/Notes/SVD.pdf
+      */
+    svdinv: function svdinv(a) {
+        const {U:u,S:s,V:v} = this.svd(a);
+        let i, j;
+        let d = [];
+        for(i=0;i<s.length;i++) {
+            d[i] = v[i].map((o,j)=>o/s[j]);
+        }
+        return this.mult(d,this.transpose(u));
+    }
+}
+
 /*
 http://www.diffusion-imaging.com/2014/04/from-diffusion-weighted-images-to.html
 */
 
-const math = require('mathjs');
+// const math = require('mathjs');
 
-function normVec(v) {
-    let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
-    return {
-        x: v.x / lv,
-        y: v.y / lv,
-        z: v.z / lv
-    };
-}
+var HDDIDTI = {
+    /**
+     * @func eigenvalues
+     * @desc Returns the eigenvalues of a symmetric 3x3 matrix
+     * @param array d A symmetric 3x3 diffusion matrix
+     */
+    eigenvalues: function eigenvalues(d) {
+        const [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz] = d;
+        const I1 = Dxx + Dyy + Dzz;
+        const I2 = Dxx*Dyy + Dyy*Dzz + Dzz*Dxx - (Dxy*Dxy + Dxz*Dxz + Dyz*Dyz);
+        const I3 = Dxx*Dyy*Dzz + 2*Dxy*Dxz*Dyz - (Dzz*Dxy*Dxy + Dyy*Dxz*Dxz + Dxx*Dyz*Dyz);
+        const v = Math.pow(I1/3, 2) - I2/3;
+        const s = Math.pow(I1/3, 3) - I1*I2/6 + I3/2;
+        const phi = Math.acos(s/Math.pow(v, 3/2))/3;
+        const l1 = Math.abs(I1/3 + 2*Math.sqrt(v)*Math.cos(phi));
+        const l2 = Math.abs(I1/3 - 2*Math.sqrt(v)*Math.cos(Math.PI/3+phi));
+        const l3 = Math.abs(I1/3 - 2*Math.sqrt(v)*Math.cos(Math.PI/3-phi));
 
-/**
- * @func eigenvalues
- * @desc Returns the eigenvalues of a symmetric 3x3 matrix
- * @param array d A symmetric 3x3 diffusion matrix
- */
-function eigenvalues(d) {
-    const [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz] = d;
-    const I1 = Dxx + Dyy + Dzz;
-    const I2 = Dxx*Dyy + Dyy*Dzz + Dzz*Dxx - (Dxy*Dxy + Dxz*Dxz + Dyz*Dyz);
-    const I3 = Dxx*Dyy*Dzz + 2*Dxy*Dxz*Dyz - (Dzz*Dxy*Dxy + Dyy*Dxz*Dxz + Dxx*Dyz*Dyz);
-    const v = Math.pow(I1/3, 2) - I2/3;
-    const s = Math.pow(I1/3, 3) - I1*I2/6 + I3/2;
-    const phi = Math.acos(s/Math.pow(v, 3/2))/3;
-    const l1 = Math.abs(I1/3 + 2*Math.sqrt(v)*Math.cos(phi));
-    const l2 = Math.abs(I1/3 - 2*Math.sqrt(v)*Math.cos(Math.PI/3+phi));
-    const l3 = Math.abs(I1/3 - 2*Math.sqrt(v)*Math.cos(Math.PI/3-phi));
+        return {l1: l1, l2: l2, l3: l3};
+    },
 
-    return {l1: l1, l2: l2, l3: l3};
-}
+    /**
+     * @func eigenvectors
+     * @desc Returns the eigenvectors of a symmetric 3x3 matrix
+     * @param array l A vector with 3 eigenvalues
+     * @param array d A symmetric 3x3 diffusion matrix
+     * @return object An object with three eigenvectors
+     */
+    eigenvectors: function eigenvectors(l, d) {
+        const [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz] = d;
+        //console.log("d:",Dxx, Dyy, Dzz, Dxy, Dxz, Dyz);
+        const {l1, l2, l3} = l;
+        //console.log("l:",l1,l2,l3);
+        const A1 = Dxx - l1;
+        const B1 = Dyy - l1;
+        const C1 = Dzz - l1;
+        const A2 = Dxx - l2;
+        const B2 = Dyy - l2;
+        const C2 = Dzz - l2;
+        const A3 = Dxx - l3;
+        const B3 = Dyy - l3;
+        const C3 = Dzz - l3;
+        const e1 = {
+            x: (Dxy*Dyz - B1*Dxz) * (Dxz*Dyz - C1*Dxy),
+            y: (Dxz*Dyz - C1*Dxy) * (Dxy*Dxz - A1*Dyz),
+            z: (Dxy*Dxz - A1*Dyz) * (Dxy*Dyz - B1*Dxz)
+        }
+        const e2 = {
+            x: (Dxy*Dyz - B2*Dxz) * (Dxz*Dyz - C2*Dxy),
+            y: (Dxz*Dyz - C2*Dxy) * (Dxy*Dxz - A2*Dyz),
+            z: (Dxy*Dxz - A2*Dyz) * (Dxy*Dyz - B2*Dxz)
+        }
+        const e3 = {
+            x: (Dxy*Dyz - B3*Dxz) * (Dxz*Dyz - C3*Dxy),
+            y: (Dxz*Dyz - C3*Dxy) * (Dxy*Dxz - A3*Dyz),
+            z: (Dxy*Dxz - A3*Dyz) * (Dxy*Dyz - B3*Dxz)
+        }
 
-/**
- * @func eigenvectors
- * @desc Returns the eigenvectors of a symmetric 3x3 matrix
- * @param array l A vector with 3 eigenvalues
- * @param array d A symmetric 3x3 diffusion matrix
- * @return object An object with three eigenvectors
- */
-function eigenvectors(l, d) {
-    const [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz] = d;
-    //console.log("d:",Dxx, Dyy, Dzz, Dxy, Dxz, Dyz);
-    const {l1, l2, l3} = l;
-    //console.log("l:",l1,l2,l3);
-    const A1 = Dxx - l1;
-    const B1 = Dyy - l1;
-    const C1 = Dzz - l1;
-    const A2 = Dxx - l2;
-    const B2 = Dyy - l2;
-    const C2 = Dzz - l2;
-    const A3 = Dxx - l3;
-    const B3 = Dyy - l3;
-    const C3 = Dzz - l3;
-    const e1 = {
-        x: (Dxy*Dyz - B1*Dxz) * (Dxz*Dyz - C1*Dxy),
-        y: (Dxz*Dyz - C1*Dxy) * (Dxy*Dxz - A1*Dyz),
-        z: (Dxy*Dxz - A1*Dyz) * (Dxy*Dyz - B1*Dxz)
+        return {e1: this.normVec(e1), e2: this.normVec(e2), e3: this.normVec(e3)};
+    },
+
+    invHfromG: function invHfromG(G) {
+        const invH = this.svdinv([
+            [G[0].x*G[0].x, G[0].y*G[0].y, G[0].z*G[0].z, 2*G[0].x*G[0].y, 2*G[0].x*G[0].z, 2*G[0].y*G[0].z],
+            [G[1].x*G[1].x, G[1].y*G[1].y, G[1].z*G[1].z, 2*G[1].x*G[1].y, 2*G[1].x*G[1].z, 2*G[1].y*G[1].z],
+            [G[2].x*G[2].x, G[2].y*G[2].y, G[2].z*G[2].z, 2*G[2].x*G[2].y, 2*G[2].x*G[2].z, 2*G[2].y*G[2].z],
+            [G[3].x*G[3].x, G[3].y*G[3].y, G[3].z*G[3].z, 2*G[3].x*G[3].y, 2*G[3].x*G[3].z, 2*G[3].y*G[3].z],
+            [G[4].x*G[4].x, G[4].y*G[4].y, G[4].z*G[4].z, 2*G[4].x*G[4].y, 2*G[4].x*G[4].z, 2*G[4].y*G[4].z],
+            [G[5].x*G[5].x, G[5].y*G[5].y, G[5].z*G[5].z, 2*G[5].x*G[5].y, 2*G[5].x*G[5].z, 2*G[5].y*G[5].z]
+        ]);
+
+        return invH;
+    },
+
+    /**
+     * @func diffusionMatrix6
+     * @desc Computes a diffusion matrix based on signals measured in 6 different axes
+     * @param array S An array of 7 values, first the signal without gradients, followed by signals in 6 directions
+     * @param array G An array of 6 directions, each with x, y and z components
+     * @return array A diffusion matrix expressed as a vector, d = [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
+     */
+    diffusionMatrix6: function diffusionMatrix6(S, invH) {
+        let b = 1000; // s/mm2 (changing b only changes the eigenvalues, and thus MD, but not the eigenvectors or the FA)
+        let S0 = S[0]; // larger than any Sk
+        const Y = [
+            Math.log(S0/S[1])/b,
+            Math.log(S0/S[2])/b,
+            Math.log(S0/S[3])/b,
+            Math.log(S0/S[4])/b,
+            Math.log(S0/S[5])/b,
+            Math.log(S0/S[6])/b
+        ];
+        return this.mult(invH, h.transpose([Y])).map(o=>o[0]);
+    },
+
+    /**
+      * @desc fit diffusion tensors to a diffusion weighted volume
+      */
+    dti: function dti(dwvol, dim, G) {
+        let i;
+        let dt = [];
+        const invH = this.invHfromG(G);
+        for(i=0; i<dim[0]*dim[1]*dim[2]; i++) {
+            let signal = [];
+            for(j=0;j<dwvol.length;j++) {
+                signal.push(dwvol[j][i]);
+            }
+            signal = [Math.max(...signal), ...signal];
+            const dif = this.diffusionMatrix6(signal, invH);
+            console.log("dif",dif);
+            /*
+            const {U,S,V} = h.svd([
+                [dif[0],dif[3],dif[4]],
+                [dif[3],dif[1],dif[5]],
+                [dif[4],dif[5],dif[2]]
+            ]);
+            */
+            //dt[i] = this.mult(U, this.diag(S));
+            dt[i] = h.svd([
+                [dif[0],dif[3],dif[4]],
+                [dif[3],dif[1],dif[5]],
+                [dif[4],dif[5],dif[2]]
+            ]);
+        }
+
+        return dt;
+    },
+
+    /**
+     * @desc Mean diffusivity (or apparent diffusion coefficient)
+     */
+    md: function md(evals) {
+        return (evals.l1 + evals.l2 + evals.l3)/3;
+    },
+
+    /**
+     * @desc Fractional anisotropy
+     */
+    fa: function fa(evals) {
+        const {l1, l2, l3} = evals;
+        const MD = (l1 + l2 + l3)/3;
+        return Math.sqrt(
+            (3*Math.pow(l1 - MD, 2)
+            + Math.pow(l2 - MD, 2)
+            + Math.pow(l3 - MD, 2))
+            /(2*(l1*l1 + l2*l2 + l3*l3)));
     }
-    const e2 = {
-        x: (Dxy*Dyz - B2*Dxz) * (Dxz*Dyz - C2*Dxy),
-        y: (Dxz*Dyz - C2*Dxy) * (Dxy*Dxz - A2*Dyz),
-        z: (Dxy*Dxz - A2*Dyz) * (Dxy*Dyz - B2*Dxz)
-    }
-    const e3 = {
-        x: (Dxy*Dyz - B3*Dxz) * (Dxz*Dyz - C3*Dxy),
-        y: (Dxz*Dyz - C3*Dxy) * (Dxy*Dxz - A3*Dyz),
-        z: (Dxy*Dxz - A3*Dyz) * (Dxy*Dyz - B3*Dxz)
-    }
-
-    return {e1: normVec(e1), e2: normVec(e2), e3: normVec(e3)};
 }
-
-function invHfromG(G) {
-    const invH = math.inv(math.matrix([
-        [G[0].x*G[0].x, G[0].y*G[0].y, G[0].z*G[0].z, 2*G[0].x*G[0].y, 2*G[0].x*G[0].z, 2*G[0].y*G[0].z],
-        [G[1].x*G[1].x, G[1].y*G[1].y, G[1].z*G[1].z, 2*G[1].x*G[1].y, 2*G[1].x*G[1].z, 2*G[1].y*G[1].z],
-        [G[2].x*G[2].x, G[2].y*G[2].y, G[2].z*G[2].z, 2*G[2].x*G[2].y, 2*G[2].x*G[2].z, 2*G[2].y*G[2].z],
-        [G[3].x*G[3].x, G[3].y*G[3].y, G[3].z*G[3].z, 2*G[3].x*G[3].y, 2*G[3].x*G[3].z, 2*G[3].y*G[3].z],
-        [G[4].x*G[4].x, G[4].y*G[4].y, G[4].z*G[4].z, 2*G[4].x*G[4].y, 2*G[4].x*G[4].z, 2*G[4].y*G[4].z],
-        [G[5].x*G[5].x, G[5].y*G[5].y, G[5].z*G[5].z, 2*G[5].x*G[5].y, 2*G[5].x*G[5].z, 2*G[5].y*G[5].z]
-    ]));
-
-    return invH;
-}
-
-/**
- * @func diffusionMatrix6
- * @desc Computes a diffusion matrix based on signals measured in 6 different axes
- * @param array S An array of 7 values, first the signal without gradients, followed by signals in 6 directions
- * @param array G An array of 6 directions, each with x, y and z components
- * @return array A diffusion matrix expressed as a vector, d = [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
- */
-function diffusionMatrix6(S, invH) {
-    let b = 1000; // s/mm2 (changing b only changes the eigenvalues, and thus MD, but not the eigenvectors or the FA)
-    let S0 = S[0]; // larger than any Sk
-    const Y = math.matrix([
-        Math.log(S0/S[1])/b, 
-        Math.log(S0/S[2])/b, 
-        Math.log(S0/S[3])/b, 
-        Math.log(S0/S[4])/b, 
-        Math.log(S0/S[5])/b, 
-        Math.log(S0/S[6])/b
-    ]);
-
-    return math.multiply(invH, Y)._data;
-}
-
-/**
- * @desc Mean diffusivity
- */
-function md(evals) {
-    return (evals.l1 + evals.l2 + evals.l3)/3;
-}
-
-/**
- * @desc Fractional anisotropy
- */
-function fa(evals) {
-    const {l1, l2, l3} = evals;
-    const MD = (l1 + l2 + l3)/3;
-    return Math.sqrt(
-        (3*Math.pow(l1 - MD, 2)
-        + Math.pow(l2 - MD, 2)
-        + Math.pow(l3 - MD, 2))
-        /(2*(l1*l1 + l2*l2 + l3*l3)));
-}
-
 var HDDISim = {
     getValue: function getValue(vol, dim, x, y, z) {
         return vol[z*dim[1]*dim[0] + y*dim[0] + x];
@@ -301,23 +989,6 @@ var HDDISim = {
         for(i=0; i<this.params.dir.length; i++) {
             vol[i][z*dim[1]*dim[0] + y*dim[0] + x] += Math.abs(this.dot(this.params.dir[i], val));
         }
-    },
-
-    normalise: function normalise(v, l) {
-        let lv = Math.sqrt( v.x * v.x + v.y * v.y + v.z * v.z );
-        return {
-            x: l * v.x / lv,
-            y: l * v.y / lv,
-            z: l * v.z / lv
-        };
-    },
-
-    scale: function scale(v, l) {
-        return {
-            x: l * v.x,
-            y: l * v.y,
-            z: l * v.z
-        };
     },
 
     /**
@@ -441,6 +1112,7 @@ var HDDISim = {
         let length, max, min;
         let v, v2;
         let bar = new progress.Bar({}, progress.Presets.shades_classic);
+        let fibres = [];
 
         bar.start(this.params.ns, 0);
 
@@ -453,7 +1125,7 @@ var HDDISim = {
                 bar.update(count);
             }
 
-            //take random surface voxel to start fiber
+            // take random boundary voxel to start fiber
             rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
             pos = {
                 x: this.boundary[rindex].x + 0.5,
@@ -466,7 +1138,8 @@ var HDDISim = {
             while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
                 // random direction
                 v2 = this.scale(this.randomDirection(), this.params.step);
-                //new direction = mix of old plus random
+
+                // new direction = mix of old plus random
                 v = this.normalise({
                     x: this.params.w * v.x + (1-this.params.w)* v2.x ,
                     y: this.params.w * v.y + (1-this.params.w)* v2.y,
@@ -502,7 +1175,8 @@ var HDDISim = {
                 }
             }
 
-            for(i = 0; i<fib.length; i += 1) {
+            // stroke the streamline in the density and direction volumes
+            for(i = 0; i < fib.length; i++) {
                 [pos, v] = fib[i];
                 //set every visited voxel to 1
                 ix = parseInt(pos.x);
@@ -510,6 +1184,15 @@ var HDDISim = {
                 iz = parseInt(pos.z);
                 this.addValue( this.rho, dim, ix, iy, iz, 1 );
                 this.addValueN( this.dir, dim, ix, iy, iz, v );
+            }
+
+            // if part of the last 5k fibres, store it
+            if(this.params.ns - count <5000) {
+                let fib2 = [];
+                for(i=0;i<fib.length;i+=Math.min(1, fib.length/10)) {
+                    fib2.push([fib[i][0].x,fib[i][0].y,fib[i][0].z]);
+                }
+                fibres.push(fib2);
             }
 
             count += 1;
@@ -520,6 +1203,164 @@ var HDDISim = {
             console.log( '%cgenerate voxels finito', 'color: light-green; ' );
         }
         console.log("Min and Max fibre length:", min, max);
+        writeTck(fibres, "test.tck");
+    },
+
+    /**
+      * @func genStickyStreamlines
+      * @desc Generates random fibres which tend to follow the previous directions
+      */
+    genStickyStreamlines: function genStickyStreamlines(vol, dim) {
+        console.log( '%cgenerate fibres', 'color: green; ' );
+
+        let i;
+        let count;
+        let pos, rindex;
+        let ix, iy, iz;
+        let length, max, min;
+        let v, v2, v3;
+        let dot;
+        let bar = new progress.Bar({}, progress.Presets.shades_classic);
+        let fibres = [];
+
+        bar.start(this.params.ns, 0);
+
+        let md, mdir = [];
+        let a;
+        this.params.anis = [];
+        let anis = this.params.anis;
+        for(ix=0;ix<dim[0];ix++) {
+            for(iy=0;iy<dim[1];iy++) {
+                for(iz=0;iz<dim[2];iz++) {
+                    mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix]=this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
+                    this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix]=0.2;
+                }
+            }
+        }
+
+        // generate fibres
+        count = 0;
+        while( count < this.params.ns) {
+            let fib = [];
+
+            if( count%1e+3 === 0 ) {
+                bar.update(count);
+            }
+
+            // take random boundary voxel to start fiber
+            rindex = parseInt( Math.random() * ( this.boundary.length - 1 ) );
+            pos = {
+                x: this.boundary[rindex].x + 0.5,
+                y: this.boundary[rindex].y + 0.5,
+                z: this.boundary[rindex].z + 0.5
+            };
+            v = this.scale(this.randomDirection(), this.params.step);
+            fib.push([pos, v]);
+            length = 0;
+            while( this.getValue( vol, dim, parseInt(pos.x), parseInt(pos.y), parseInt(pos.z) ) > 0 ) {
+                // random direction
+                v2 = this.scale(this.randomDirection(), this.params.step);
+
+                // local main orientation
+                v3 = this.scale(mdir[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)], this.params.step);
+
+                //  make consistent with own direction
+                dot = this.dot(v3, v);
+                if(dot<0) {
+                    v3 = this.scale(v3, -1);
+                }
+
+                // substrate anisotropy
+                a = Math.max(0, this.params.anis[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)] - 0.2)/0.8;
+
+                // combine own direction, substrate and randomness
+                v = this.normalise({
+                    x: a*v3.x + (1-a)*(this.params.w*v.x + (1-this.params.w)*v2.x) ,
+                    y: a*v3.y + (1-a)*(this.params.w*v.y + (1-this.params.w)*v2.y) ,
+                    z: a*v3.z + (1-a)*(this.params.w*v.z + (1-this.params.w)*v2.z) ,
+                }, this.params.step);
+
+                // advance streamline
+                pos = {
+                    x: pos.x + v.x,
+                    y: pos.y + v.y,
+                    z: pos.z + v.z
+                };
+                fib.push([pos, v]);
+                // compute length
+                length += Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
+            }
+
+            // filter out short fibres
+            if(length < this.params.minFibLength ) {
+                continue;
+            }
+
+            // compute min and max fibre length
+            if(count === 0) {
+                min = length;
+                max = length;
+            } else {
+                if(length < min) {
+                    min = length;
+                }
+                if(length > max) {
+                    max = length;
+                }
+            }
+
+            // stroke the streamline in the density and direction volumes
+            // update main direction and anisotropy
+            for(i = 0; i < fib.length; i++) {
+                [pos, v] = fib[i];
+
+                // voxel coordinates
+                ix = parseInt(pos.x);
+                iy = parseInt(pos.y);
+                iz = parseInt(pos.z);
+
+                //set every visited voxel to 1
+                this.addValue( this.rho, dim, ix, iy, iz, 1 );
+
+                // update the directions
+                this.addValueN( this.dir, dim, ix, iy, iz, v );
+
+                // update main orientation (independent of direction)
+                md = mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix];
+                a = this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix];
+                dot = this.dot(md, v);
+                if(dot<0) {
+                    v = this.scale(v, -1);
+                }
+                md = {
+                    x: this.params.dmass * md.x + (1-this.params.dmass)*v.x,
+                    y: this.params.dmass * md.y + (1-this.params.dmass)*v.y,
+                    z: this.params.dmass * md.z + (1-this.params.dmass)*v.z
+                }
+                a = this.params.dmass * a + (1-this.params.dmass) * this.norm(this.sub(v, this.scale(md, Math.abs(this.dot(v,md))/this.dot(md,md))));
+                
+                mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix] = md;
+                this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix] = a;
+            }
+
+            // if part of the last 5k fibres, store it
+            if(this.params.ns - count <5000) {
+                let fib2 = [];
+                for(i=0;i<fib.length;i+=Math.min(1, fib.length/10)) {
+                    fib2.push([fib[i][0].x,fib[i][0].y,fib[i][0].z]);
+                }
+                fibres.push(fib2);
+            }
+
+            count += 1;
+        }
+        bar.update(this.params.ns);
+        bar.stop();
+        if( this.debug > 2 ) {
+            console.log( '%cgenerate voxels finito', 'color: light-green; ' );
+        }
+        console.log("Min and Max fibre length:", min, max);
+        writeTck(fibres, "test-sticky.tck");
     },
 
     /**
@@ -696,10 +1537,6 @@ var HDDISim = {
         }
 
         return first;
-    },
-
-    dot: function dot( a, b ) {
-        return( a.x * b.x + a.y * b.y + a.z * b.z )
     },
 
     getBvecsIn: function getBvecsIn() {
@@ -910,6 +1747,23 @@ var HDDIRandom = {
     },
 
     /**
+      * @desc Muller's method adapted to an ellipsoid. Goes back to the case of a sphere if a=b=c
+      */
+    randomDirectionMullerEllipsoid: function randomDirectionMullerEllipsoid(a, b, c) {
+        let v = {
+            x: a * this.nrandom(),
+            y: b * this.nrandom(),
+            z: c * this.nrandom()
+        };
+        let lv = Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
+        return {
+            x: v.x/lv,
+            y: v.y/lv,
+            z: v.z/lv
+        };
+    },
+
+    /**
       * @desc Marsaglia's method from http://mathworld.wolfram.com/SpherePointPicking.html
       */
     randomDirection: function randomDirection() {
@@ -971,6 +1825,15 @@ for(ind in props) {
     }
 }
 
+console.log('\nExtending HDDI from HDDILinAlg');
+props=Object.keys(HDDILinAlg);
+for(ind in props) {
+    prop = props[ind];
+    if(typeof prop !== 'undefined') {
+        HDDI.prototype[prop] = HDDILinAlg[prop];
+    }
+}
+
 console.log('\nExtending HDDI from HDDISim');
 props=Object.keys(HDDISim);
 for(ind in props) {
@@ -1005,7 +1868,7 @@ for(ind in props) {
 (function () {
     "use strict";
 
-    console.log("Two folds test, with different gradients");
+    console.log("Two folds test, with different gradients, sticky fibres");
 
     let hddi = new HDDI();
 
@@ -1025,7 +1888,7 @@ for(ind in props) {
     };
     hddi.params = params;
 
-    const wdir = 'experiments/06-twofolds-different-gradients/results/';
+    const wdir = 'experiments/10-twofolds-different-gradients-sticky/results/';
     const exec = require('child_process').execSync;
 
     // generate an ellipsoid with two folds

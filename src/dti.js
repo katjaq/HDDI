@@ -1,7 +1,6 @@
 /*
 http://www.diffusion-imaging.com/2014/04/from-diffusion-weighted-images-to.html
 */
-
 // const math = require('mathjs');
 
 var HDDIDTI = {
@@ -152,3 +151,4 @@ var HDDIDTI = {
             /(2*(l1*l1 + l2*l2 + l3*l3)));
     }
 }
+

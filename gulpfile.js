@@ -19,6 +19,7 @@ const experimentFiles = [
     '10-twofolds-different-gradients-sticky/script.js'
 */
 ];
+
 const src = 'src/';
 const exp = 'experiments/';
 const dest = './';

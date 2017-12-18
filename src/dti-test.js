@@ -25,6 +25,7 @@ const G = [
     {x: -0.15636, y: 0.788990, z: -0.59418},
     {x: -0.11253, y: -0.34483, z: -0.93189}
 ];
+
 //const signal = [312, 206, 129, 174, 233, 154, 187]; // 1st value is b0
 const signal = [0, 206, 129, 174, 233, 154, 187]; // 1st value is b0
 signal[0] = Math.max(...signal);
@@ -91,4 +92,3 @@ for(i=0;i<6;i++) {
 }
 console.log(dot);
 console.log(h.svd(dot));
-

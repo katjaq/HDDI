@@ -1225,6 +1225,7 @@ var HDDISim = {
 
         bar.start(this.params.ns, 0);
 
+        // initialise substrate orientation to random
         let md, mdir = [];
         let a;
         this.params.anis = [];
@@ -1232,8 +1233,13 @@ var HDDISim = {
         for(ix=0;ix<dim[0];ix++) {
             for(iy=0;iy<dim[1];iy++) {
                 for(iz=0;iz<dim[2];iz++) {
-                    mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix]=this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
-                    this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix]=0.2;
+                    if( this.getValue( vol, dim, ix, iy, iz ) > 0 ) {
+                        mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix] = this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
+                        this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix] = 0.2;
+                    } else {
+                        mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix] = {x:0,y:0,z:0};
+                        this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix] = 0.2;
+                    }
                 }
             }
         }
@@ -1264,7 +1270,7 @@ var HDDISim = {
                 // local main orientation
                 v3 = this.scale(mdir[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)], this.params.step);
 
-                //  make consistent with own direction
+                //  make consistent with fibre direction
                 dot = this.dot(v3, v);
                 if(dot<0) {
                     v3 = this.scale(v3, -1);
@@ -1273,7 +1279,11 @@ var HDDISim = {
                 // substrate anisotropy
                 a = Math.max(0, this.params.anis[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)] - 0.2)/0.8;
 
-                // combine own direction, substrate and randomness
+                // combine own direction, substrate orientation and random orientation
+                if(count<this.params.ns-1e+6) {
+                    a = 0;
+                }
+
                 v = this.normalise({
                     x: a*v3.x + (1-a)*(this.params.w*v.x + (1-this.params.w)*v2.x) ,
                     y: a*v3.y + (1-a)*(this.params.w*v.y + (1-this.params.w)*v2.y) ,
@@ -1286,8 +1296,11 @@ var HDDISim = {
                     y: pos.y + v.y,
                     z: pos.z + v.z
                 };
+
+                // store new vertex
                 fib.push([pos, v]);
-                // compute length
+
+                // update fibre length
                 length += Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
             }
 
@@ -1325,7 +1338,7 @@ var HDDISim = {
                 // update the directions
                 this.addValueN( this.dir, dim, ix, iy, iz, v );
 
-                // update main orientation (independent of direction)
+                // update substrate orientation
                 md = mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix];
                 a = this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix];
                 dot = this.dot(md, v);
@@ -1868,44 +1881,39 @@ for(ind in props) {
 (function () {
     "use strict";
 
-    console.log("Two folds test, with different gradients, sticky fibres");
+    console.log("Homogeneous sphere test");
 
     let hddi = new HDDI();
 
     const params = {
         w: 0.9, // stiffness parameter
-        step: 0.5, // step size
-        minFibLength: 10,
-        ns: 1e+7, // number of streamlines to throw
-        dir: [      // array containing the diffusion directions
-            {x:-0.049, y:-0.996, z:-0.074},
-            {x:-0.996, y:0.043, z:0.080},
-            {x:0.078, y:-0.078, z:0.994},
-            {x:0.498, y:-0.556, z:-0.665},
-            {x:-0.524, y:-0.663, z:0.535},
-            {x:0.708, y:0.344, z:0.617}
+        wh: 1-1e-5, // density homegeneity parameter
+        step: 1, // step size
+        minFibLength: 30,
+        ns: 1e+6, // number of streamlines to throw
+        dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
+            {x: 0.817324, y: -0.49673, z: -0.29196},
+            {x: 0.465087, y: -0.03533, z: 0.88456},
+            {x: 0.820439, y: -0.31517, z: 0.477018},
+            {x: -0.80334, y: 0.593293, z: -0.05141},
+            {x: -0.15636, y: 0.788990, z: -0.59418},
+            {x: -0.11253, y: -0.34483, z: -0.93189}
         ]
     };
     hddi.params = params;
 
-    const wdir = 'experiments/10-twofolds-different-gradients-sticky/results/';
+    const wdir = 'experiments/04-homogeneous-sphere/results/';
     const exec = require('child_process').execSync;
 
-    // generate an ellipsoid with two folds
-    let vol = [];
+    // generate sphere
     const dim = [80, 80, 80];
+    let vol = new Int32Array(dim[0]*dim[1]*dim[2]);
     let i, j, k;
-    let f, r, theta;
+    let r = 35;
     for(i=0;i<dim[0];i++) {
         for(j=0;j<dim[1];j++) {
             for(k=0;k<dim[2];k++) {
-                r = Math.sqrt(Math.pow(i-dim[0]/2,2) + Math.pow(j-dim[1]/2,2) + Math.pow(k-dim[2]/2,2));
-                theta = Math.atan2(k-dim[2]/2, i-dim[0]/2);
-                f = 30
-                   *(1+Math.cos(2*theta)/10)
-                   *(1-0.5*Math.exp(-Math.pow((theta-Math.PI/2)/0.2, 2)))
-                   *(1-0.5*Math.exp(-Math.pow((theta+Math.PI/2)/0.2, 2)));
-                if(r<f) {
+                if( Math.pow(i-dim[0]/2,2) + Math.pow(j-dim[1]/2,2) + Math.pow(k-dim[2]/2,2) < r*r) {
                     hddi.setValue(vol, dim, i, j, k, 1);
                 } else {
                     hddi.setValue(vol, dim, i, j, k, 0);
@@ -1918,32 +1926,31 @@ for(ind in props) {
     const ident = hddi.identifyVoxels(vol, dim);
     let mask = ident.map((v) => (v === 1));
     saveNiftiData(mask, dim, wdir + 'mask.nii.gz');
-    
-    // generate streamlines
+
+    // initialise rho and dir
     hddi.initialise(dim);
-    hddi.genStreamlines(ident, dim);
+
+    // generate a fibre density potential field
+    let val;
+    for(i=0;i<dim[0];i++) {
+        for(j=0;j<dim[1];j++) {
+            for(k=0;k<dim[2];k++) {
+                val = Math.pow(i-dim[0]/2,2) + Math.pow(j-dim[1]/2,2) + Math.pow(k-dim[2]/2,2);
+                if( val < r*r) {
+                    hddi.setValue(hddi.rho, dim, i, j, k, 35*35-val);
+                } else {
+                    hddi.setValue(hddi.rho, dim, i, j, k, 0);
+                }
+            }
+        }
+    }
+
+    // generate homogeneous streamlines
+    hddi.genHomogeneousStreamlines(ident, dim);
     saveNiftiData(hddi.rho, dim, wdir + 'rho.nii.gz');
 
     // create a b0 image as max(dir)
     const b0 = hddi.computeB0(dim);
-
-/*
-    // compute and save first diffusion directions
-    const frst = hddi.firstDirection(res.dir, dim);
-    Promise.all([
-        saveNiftiData(frst[0],dim, wdir + 'red.nii.gz'),
-        saveNiftiData(frst[1],dim, wdir + 'green.nii.gz'),
-        saveNiftiData(frst[2],dim, wdir + 'blue.nii.gz'),
-    ]).then(() => {
-        fsl.merge([
-            wdir + 'rgb.nii.gz',
-            wdir + 'red.nii.gz',
-            wdir + 'green.nii.gz',
-            wdir + 'blue.nii.gz'
-        ]);
-        exec(['rm', wdir + 'red.nii.gz', wdir + 'green.nii.gz', wdir + 'blue.nii.gz'].join(' '));
-    });
-*/
 
     // save results
     const dir = [];

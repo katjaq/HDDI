@@ -7,8 +7,9 @@
 
     const params = {
         w: 0.9, // stiffness parameter
-        step: 0.5, // step size
-        minFibLength: 10,
+        step: 1, // step size
+        minFibLength: 15,
+        dmass: 0.999,
         ns: 1e+7, // number of streamlines to throw
         dir: [      // array containing the diffusion directions
             {x:-0.049, y:-0.996, z:-0.074},
@@ -54,8 +55,9 @@
     
     // generate streamlines
     hddi.initialise(dim);
-    hddi.genStreamlines(ident, dim);
+    hddi.genStickyStreamlines(ident, dim);
     saveNiftiData(hddi.rho, dim, wdir + 'rho.nii.gz');
+    saveNiftiData(hddi.params.anis, dim, wdir + 'anisotropy.nii.gz');
 
     // create a b0 image as max(dir)
     const b0 = hddi.computeB0(dim);

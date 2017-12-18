@@ -268,6 +268,7 @@ var HDDISim = {
 
         bar.start(this.params.ns, 0);
 
+        // initialise substrate orientation to random
         let md, mdir = [];
         let a;
         this.params.anis = [];
@@ -275,8 +276,13 @@ var HDDISim = {
         for(ix=0;ix<dim[0];ix++) {
             for(iy=0;iy<dim[1];iy++) {
                 for(iz=0;iz<dim[2];iz++) {
-                    mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix]=this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
-                    this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix]=0.2;
+                    if( this.getValue( vol, dim, ix, iy, iz ) > 0 ) {
+                        mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix] = this.randomDirection();//{x:ix/dim[0],y:0,z:1}; // this.randomDirection();
+                        this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix] = 0.2;
+                    } else {
+                        mdir[iz*dim[1]*dim[0]+iy*dim[0]+ix] = {x:0,y:0,z:0};
+                        this.params.anis[iz*dim[1]*dim[0]+iy*dim[0]+ix] = 0.2;
+                    }
                 }
             }
         }
@@ -307,7 +313,7 @@ var HDDISim = {
                 // local main orientation
                 v3 = this.scale(mdir[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)], this.params.step);
 
-                //  make consistent with own direction
+                //  make consistent with fibre direction
                 dot = this.dot(v3, v);
                 if(dot<0) {
                     v3 = this.scale(v3, -1);
@@ -316,7 +322,11 @@ var HDDISim = {
                 // substrate anisotropy
                 a = Math.max(0, this.params.anis[parseInt(pos.z)*dim[1]*dim[0] + parseInt(pos.y)*dim[0] + parseInt(pos.x)] - 0.2)/0.8;
 
-                // combine own direction, substrate and randomness
+                // combine own direction, substrate orientation and random orientation
+                if(count<this.params.ns-1e+6) {
+                    a = 0;
+                }
+
                 v = this.normalise({
                     x: a*v3.x + (1-a)*(this.params.w*v.x + (1-this.params.w)*v2.x) ,
                     y: a*v3.y + (1-a)*(this.params.w*v.y + (1-this.params.w)*v2.y) ,
@@ -329,8 +339,11 @@ var HDDISim = {
                     y: pos.y + v.y,
                     z: pos.z + v.z
                 };
+
+                // store new vertex
                 fib.push([pos, v]);
-                // compute length
+
+                // update fibre length
                 length += Math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z );
             }
 
@@ -368,7 +381,7 @@ var HDDISim = {
                 // update the directions
                 this.addValueN( this.dir, dim, ix, iy, iz, v );
 
-                // update main orientation (independent of direction)
+                // update substrate orientation
                 md = mdir[iz*dim[1]*dim[0] + iy*dim[0] + ix];
                 a = this.params.anis[iz*dim[1]*dim[0] + iy*dim[0] + ix];
                 dot = this.dot(md, v);

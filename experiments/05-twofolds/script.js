@@ -9,7 +9,7 @@
         w: 0.9, // stiffness parameter
         step: 0.5, // step size
         minFibLength: 10,
-        ns: 1e+7, // number of streamlines to throw
+        ns: 1e+5, // number of streamlines to throw
         dir: [      // array containing the diffusion directions
             {x: 0.817324, y: -0.49673, z: -0.29196},
             {x: 0.465087, y: -0.03533, z: 0.88456},

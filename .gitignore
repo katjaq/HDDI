@@ -4,3 +4,6 @@ node_modules
 *.tck
 experiments/*/results/*.tck
 experiments/*/results/*.mif
+experiments/*/results/
+hddi.js
+

@@ -10,7 +10,7 @@
         step: 1, // step size
         minFibLength: 10,
         dmass: 0.999,
-        ns: 1e+7, // number of streamlines to throw
+        ns: 1e+5, // number of streamlines to throw
         dir: [      // array containing the diffusion directions 'measured' read in from bvec file; no more used
             {x: 0.817324, y: -0.49673, z: -0.29196},
             {x: 0.465087, y: -0.03533, z: 0.88456},

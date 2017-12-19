@@ -10,7 +10,7 @@
         step: 1, // step size
         minFibLength: 15,
         dmass: 0.999,
-        ns: 1e+7, // number of streamlines to throw
+        ns: 1e+5, // number of streamlines to throw
         dir: [      // array containing the diffusion directions
             {x:-0.049, y:-0.996, z:-0.074},
             {x:-0.996, y:0.043, z:0.080},

@@ -25,6 +25,12 @@
     const wdir = 'experiments/01-ellipsoid/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // generate ellipsoid
     let vol = [];
     const dim = [100, 100, 50];

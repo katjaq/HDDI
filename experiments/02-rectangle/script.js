@@ -24,6 +24,12 @@
     const wdir = 'experiments/02-rectangle/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // generate rectangle
     let vol = [];
     const dim = [100, 100, 50];

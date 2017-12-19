@@ -24,6 +24,12 @@
     const wdir = 'experiments/08-ferret-p4-longer-fibres/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // load nifti1 mask
     loadNiftiData('experiments/08-ferret-p4-longer-fibres/F08_P4.t2_to_ref.sel.nii.gz')
     .then((res) => {

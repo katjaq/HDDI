@@ -25,6 +25,12 @@
     const wdir = 'experiments/09-sphere-sticky/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // generate sphere
     let vol = [];
     const dim = [80, 80, 80];

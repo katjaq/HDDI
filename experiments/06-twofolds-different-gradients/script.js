@@ -24,6 +24,12 @@
     const wdir = 'experiments/06-twofolds-different-gradients/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // generate an ellipsoid with two folds
     let vol = [];
     const dim = [80, 80, 80];

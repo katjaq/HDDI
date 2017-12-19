@@ -25,6 +25,13 @@
     const wdir = 'experiments/04-homogeneous-sphere/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
+
     // generate sphere
     const dim = [80, 80, 80];
     let vol = new Int32Array(dim[0]*dim[1]*dim[2]);

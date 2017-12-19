@@ -24,6 +24,12 @@
     const wdir = 'experiments/07-ferret-p4/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // load nifti1 mask
     loadNiftiData('experiments/07-ferret-p4/F08_P4.t2_to_ref.sel.nii.gz')
     .then((res) => {

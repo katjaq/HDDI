@@ -6,4 +6,3 @@ experiments/*/results/*.tck
 experiments/*/results/*.mif
 experiments/*/results/
 hddi.js
-

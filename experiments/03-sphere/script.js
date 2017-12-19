@@ -24,6 +24,12 @@
     const wdir = 'experiments/03-sphere/results/';
     const exec = require('child_process').execSync;
 
+    try {
+        fs.statSync(wdir);
+    } catch(e) {
+        fs.mkdirSync(wdir);
+    }
+
     // generate sphere
     let vol = [];
     const dim = [80, 80, 80];

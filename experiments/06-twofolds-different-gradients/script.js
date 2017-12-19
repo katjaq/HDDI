@@ -23,11 +23,21 @@
 
     const wdir = 'experiments/06-twofolds-different-gradients/results/';
     const exec = require('child_process').execSync;
+    const imgdir = 'experiments/images/';
+    const imgprefix0 = '06-twofolds-different-gradients_sag_'
+    const imgprefix1 = '06-twofolds-different-gradients_cor_'
+    const imgprefix2 = '06-twofolds-different-gradients_axi_'
+    const imgzoom = 20;
 
     try {
         fs.statSync(wdir);
     } catch(e) {
         fs.mkdirSync(wdir);
+    }
+    try {
+        fs.statSync(imgdir);
+    } catch(e) {
+        fs.mkdirSync(imgdir);
     }
 
     // generate an ellipsoid with two folds
@@ -121,5 +131,26 @@
         mrtrix.tensor2metric(['-fa', wdir + 'fa.nii.gz', '-adc', wdir + 'adc.nii.gz', '-num', 1 ,'-vector', wdir + 'v1.nii.gz', wdir + 'dt.mif ', '-force']);
         mrtrix.dwi2tensor([wdir + 'dwi.mif', wdir + 'dt.mif', '-force']);
         mrtrix.tckgen([wdir + 'dwi.mif', wdir + 'streamlines.50k-det.tck', '-algorithm', 'Tensor_Det', '-seed_image', wdir + 'mask.nii.gz', '-mask', wdir + 'mask.nii.gz', '-select', 50000, '-force']);
+    });
+    const fafile = wdir + 'fa.nii.gz';
+    const tckfile = wdir + 'streamlines.50k-det.tck';
+    //size width, height in pixel units
+    //fov field of view in mm
+    const imgsize0 = dim[1] * imgzoom + ',' + dim[2] * imgzoom;
+    const imgfov0 = Math.max(dim[1], dim[2]);
+    const imgsize1 = dim[0] * imgzoom + ',' + dim[2] * imgzoom;
+    const imgfov1 = Math.max(dim[0], dim[2]);
+    const imgsize2 = dim[0] * imgzoom + ',' + dim[1] * imgzoom;
+    const imgfov2 = Math.max(dim[0], dim[1]) + imgzoom;
+    Promise
+    .all(tckfile)
+    .then(() => {
+        console.log(fafile);
+        console.log(imgdir);
+        //-plane index --> Set the viewing plane, according to the mappping 0: sagittal; 1: coronal; 2: axial.
+        //-tractography.thickness
+        mrtrix.mrview([`-load ${fafile}`, '-noannotations', '-plane 0', `-size ${imgsize0}`, `-fov ${imgfov0}`, `-tractography.load ${tckfile}`, '-tractography.opacity 0.3', '-imagevisible 0', `-capture.folder ${imgdir}`, `-capture.prefix ${imgprefix0}`, '-capture.grab', '-force', '-exit']);
+        mrtrix.mrview([`-load ${fafile}`, '-noannotations', '-plane 1', `-size ${imgsize1}`, `-fov ${imgfov1}`, `-tractography.load ${tckfile}`, '-tractography.opacity 0.3', '-imagevisible 0', `-capture.folder ${imgdir}`, `-capture.prefix ${imgprefix1}`, '-capture.grab', '-force', '-exit']);
+        mrtrix.mrview([`-load ${fafile}`, '-noannotations', '-plane 2', `-size ${imgsize2}`, `-fov ${imgfov2}`, `-tractography.load ${tckfile}`, '-tractography.opacity 0.3', '-imagevisible 0', `-capture.folder ${imgdir}`, `-capture.prefix ${imgprefix2}`, '-capture.grab', '-force', '-exit']);
     });
 } ());

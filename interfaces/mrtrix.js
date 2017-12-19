@@ -26,8 +26,14 @@ const tckgen = function(args) {
     exec( arr.join(' '), (res) => {console.log(res);});
 }
 
+const mrview = function(args) {
+    const arr = ['mrview', ...args];
+    exec( arr.join(' '), (res) => {console.log(res);});
+}
+
 exports.mrconvert = mrconvert;
 exports.dwidenoise = dwidenoise;
 exports.dwi2tensor = dwi2tensor;
 exports.tensor2metric = tensor2metric;
 exports.tckgen = tckgen;
+exports.mrview = mrview;

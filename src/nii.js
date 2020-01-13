@@ -1,6 +1,3 @@
-console.log(typeof fs);
-console.log(typeof Struct);
-
 if(typeof fs === 'undefined') {
     var fs = require('fs');
 }

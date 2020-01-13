@@ -1,4 +1,4 @@
-const fs = require('fs');
+var fs = require('fs');
 const code = fs.readFileSync('nii.js').toString();
 eval(code);
 

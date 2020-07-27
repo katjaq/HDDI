@@ -12,12 +12,12 @@
         dmass: 0.999,
         ns: 1e+5, // number of streamlines to throw
         dir: [      // array containing the diffusion directions
-            {x:-0.049, y:-0.996, z:-0.074},
-            {x:-0.996, y:0.043, z:0.080},
-            {x:0.078, y:-0.078, z:0.994},
-            {x:0.498, y:-0.556, z:-0.665},
-            {x:-0.524, y:-0.663, z:0.535},
-            {x:0.708, y:0.344, z:0.617}
+            { x:-0.049, y:-0.996, z:-0.074 },
+            { x:-0.996, y:0.043, z:0.080 },
+            { x:0.078, y:-0.078, z:0.994 },
+            { x:0.498, y:-0.556, z:-0.665 },
+            { x:-0.524, y:-0.663, z:0.535 },
+            { x:0.708, y:0.344, z:0.617 }
         ]
     };
     hddi.params = params;
@@ -68,7 +68,7 @@
     const ident = hddi.identifyVoxels(vol, dim);
     let mask = ident.map((v) => (v === 1));
     saveNiftiData(mask, dim, wdir + 'mask.nii.gz');
-    
+
     // generate streamlines
     hddi.initialise(dim);
     hddi.genStickyStreamlines(ident, dim);

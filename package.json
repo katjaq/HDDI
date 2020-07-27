@@ -19,7 +19,9 @@
   "dependencies": {
     "cli-progress": "^1.6.0",
     "gpu.js": "^1.0.0-rc.10",
+    "graceful-fs": "^4.1.15",
     "mathjs": "^3.17.0",
+    "natives": "^1.1.6",
     "struct": "0.0.12"
   },
   "devDependencies": {
